@@ -43,7 +43,10 @@ class EmployeeManagementController extends Controller
                 Rule::unique('pegawai', 'nip')->where('organization_id', $orgId)
             ],
             'nama_pegawai' => 'required|string|max:255',
-            'nfc_id' => 'nullable|string|max:255',
+            'nfc_id' => [
+                'nullable', 'string', 'max:255',
+                Rule::unique('nfc', 'nfc_serial_number'),
+            ],
             'email' => [
                 'nullable', 'email', 'max:255',
                 Rule::unique('pegawai', 'email')->where('organization_id', $orgId)
@@ -83,6 +86,7 @@ class EmployeeManagementController extends Controller
             'nip.required' => 'NIP wajib diisi.',
             'nip.unique' => 'NIP sudah terdaftar.',
             'nip.max' => 'NIP tidak boleh lebih dari 50 karakter.',
+            'nfc_id.unique' => 'UID NFC sudah terdaftar pada pegawai lain.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan oleh pegawai lain.',
             'no_handphone.regex' => 'Format nomor handphone tidak valid.',
@@ -157,7 +161,11 @@ class EmployeeManagementController extends Controller
                     ->ignore($pegawai->pegawai_id, 'pegawai_id')
             ],
             'nama_pegawai' => 'required|string|max:255',
-            'nfc_id' => 'nullable|string|max:255',
+            'nfc_id' => [
+                'nullable', 'string', 'max:255',
+                Rule::unique('nfc', 'nfc_serial_number')
+                    ->ignore($pegawai->nfc?->nfc_id, 'nfc_id'),
+            ],
             'email' => [
                 'nullable', 'email', 'max:255',
                 Rule::unique('pegawai', 'email')
@@ -204,6 +212,7 @@ class EmployeeManagementController extends Controller
             'nama_pegawai.max' => 'Nama lengkap tidak boleh lebih dari 255 karakter.',
             'nip.unique' => 'NIP sudah terdaftar.',
             'nip.max' => 'NIP tidak boleh lebih dari 50 karakter.',
+            'nfc_id.unique' => 'UID NFC sudah terdaftar pada pegawai lain.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan oleh pegawai lain.',
             'no_handphone.regex' => 'Format nomor handphone tidak valid.',
