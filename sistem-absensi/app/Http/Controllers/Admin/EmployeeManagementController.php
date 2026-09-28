@@ -195,7 +195,7 @@ class EmployeeManagementController extends Controller
                 'string',
                 'max:100',
                 Rule::unique('akun', 'username')
-                    ->ignore($pegawai->akun->akun_id ?? null, 'akun_id')
+                    ->ignore($pegawai->akun?->id, 'id')
             ],
             'password' => 'nullable|string|min:6|confirmed',
             'status' => 'nullable|string|max:50',

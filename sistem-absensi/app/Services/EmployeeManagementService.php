@@ -362,6 +362,21 @@ class EmployeeManagementService
             }
 
             $this->repository->updateAccount($pegawai->akun, $akunUpdate);
+        } else {
+            // Jika pegawai belum memiliki data akun (misal data legacy/import), buat akun baru
+            $roleData = $this->resolveRoleData($data['role_id'] ?? $data['role'] ?? 'Pegawai');
+            $username = trim($data['username'] ?? '') !== '' ? trim($data['username']) : $this->buildUsername($pegawai);
+
+            $akunData = [
+                'pegawai_id' => $pegawai->pegawai_id,
+                'username'   => $username,
+                'password'   => Hash::make($data['password'] ?? 'password123'),
+                'role_id'    => $roleData['role_id'],
+                'role'       => $roleData['nama_role'],
+            ];
+
+            $this->repository->createAccount($akunData);
+            $pegawai->load('akun');
         }
 
         $oldPhoto = $pegawai->foto_profile;
