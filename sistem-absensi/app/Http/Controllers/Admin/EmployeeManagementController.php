@@ -52,7 +52,7 @@ class EmployeeManagementController extends Controller
                 Rule::unique('pegawai', 'email')->where('organization_id', $orgId)
             ],
             'no_handphone' => 'nullable|string|regex:/^[0-9]+$/|max:20',
-            'foto_profile' => 'nullable|mimes:jpg,jpeg,png|max:2048',
+            'foto_profile' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
             'divisi_id' => [
                 'nullable', 'integer',
                 Rule::exists('master_divisi', 'divisi_id')->where('organization_id', $orgId)
@@ -97,7 +97,10 @@ class EmployeeManagementController extends Controller
             'password.min' => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
             'role.required' => 'Role Akses wajib dipilih.',
+                        'foto_profile.file' => 'Foto profil harus berupa file yang valid.',
+            'foto_profile.image' => 'File harus berupa gambar.',
             'foto_profile.mimes' => 'Format foto harus berupa JPG, JPEG, atau PNG.',
+            'foto_profile.max' => 'Ukuran foto profil tidak boleh melebihi 2MB.',
             'foto_profile.max' => 'Ukuran foto maksimal 2MB.',
         ]);
 
@@ -173,7 +176,7 @@ class EmployeeManagementController extends Controller
                     ->ignore($pegawai->pegawai_id, 'pegawai_id')
             ],
             'no_handphone' => 'nullable|string|regex:/^[0-9]+$/|max:20',
-            'foto_profile' => 'nullable|mimes:jpg,jpeg,png|max:2048',
+            'foto_profile' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
             'divisi_id' => [
                 'nullable', 'integer',
                 Rule::exists('master_divisi', 'divisi_id')->where('organization_id', $orgId)
@@ -221,7 +224,10 @@ class EmployeeManagementController extends Controller
             'username.max' => 'Username tidak boleh lebih dari 100 karakter.',
             'password.min' => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+                        'foto_profile.file' => 'Foto profil harus berupa file yang valid.',
+            'foto_profile.image' => 'File harus berupa gambar.',
             'foto_profile.mimes' => 'Format foto harus berupa JPG, JPEG, atau PNG.',
+            'foto_profile.max' => 'Ukuran foto profil tidak boleh melebihi 2MB.',
             'foto_profile.max' => 'Ukuran foto maksimal 2MB.',
         ]);
 
