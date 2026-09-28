@@ -8,7 +8,7 @@
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <form method="POST" action="{{ route('admin.employee-management.update', $employee->pegawai_id) }}" class="grid gap-4 md:grid-cols-2">
+        <form method="POST" action="{{ route('admin.employee-management.update', $employee->pegawai_id) }}" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-2">
             @csrf
             @method('PUT')
             <div>
@@ -96,6 +96,14 @@
                     <option value="Tidak Aktif" {{ old('status', $employee->status) == 'Tidak Aktif' ? 'selected' : '' }}>Tidak Aktif</option>
                 </select>
                 @error('status')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Foto Profil (opsional)</label>
+                <input type="file" name="foto_profile" accept="image/*" class="w-full text-sm">
+                @if(!empty($employee->foto_profile))
+                    <p class="mt-1 text-xs text-gray-500">Foto saat ini: <a href="{{ supabase_public_url($employee->foto_profile) }}" target="_blank" class="text-indigo-600 underline">Lihat Foto</a></p>
+                @endif
+                @error('foto_profile')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="md:col-span-2 flex gap-3">
                 <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Perbarui</button>

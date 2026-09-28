@@ -412,36 +412,39 @@ class EmployeeManagementService
     protected function uploadProfilePhoto($file, int $pegawaiId): string
     {
         $bucket = config('supabase.bucket', 'profile-images');
-        $fileName = 'pegawai_' . $pegawaiId . '_' . time() . '_' . Str::random(6) . '.' . $file->extension();
+        $fileName = 'pegawai_' . $pegawaiId . '_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
         $remotePath = trim($fileName, '/');
 
         $baseUrl = supabase_url() ?: config('supabase.url');
-        if (! $baseUrl) {
-            throw new \RuntimeException('Supabase URL belum dikonfigurasi. Pastikan SUPABASE_URL di .env berisi URL Supabase seperti https://<project-ref>.supabase.co');
-        }
-
-        $baseUrl = rtrim($baseUrl, '/');
-        if (! preg_match('/^https?:\/\//i', $baseUrl)) {
-            $baseUrl = 'https://' . ltrim($baseUrl, '/');
-        }
-
-        $uploadUrl = $baseUrl . '/storage/v1/object/' . rawurlencode($bucket) . '/' . rawurlencode($remotePath);
         $apiKey = supabase_key() ?: config('supabase.key');
-        if (! $apiKey) {
-            throw new \RuntimeException('Supabase key belum dikonfigurasi. Pastikan SUPABASE_KEY di .env berisi kunci API Supabase.');
+
+        if (!empty($baseUrl) && !empty($apiKey)) {
+            $baseUrl = rtrim($baseUrl, '/');
+            if (! preg_match('/^https?:\/\//i', $baseUrl)) {
+                $baseUrl = 'https://' . ltrim($baseUrl, '/');
+            }
+
+            $uploadUrl = $baseUrl . '/storage/v1/object/' . rawurlencode($bucket) . '/' . rawurlencode($remotePath);
+
+            try {
+                $resp = Http::timeout(10)->withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'apikey' => $apiKey,
+                    'Content-Type' => $file->getClientMimeType(),
+                    'x-upsert' => 'true',
+                ])->withBody(file_get_contents($file->getRealPath()), $file->getClientMimeType())->post($uploadUrl);
+
+                if ($resp->successful() || $resp->status() === 200 || $resp->status() === 201) {
+                    return rtrim($bucket, '/') . '/' . $remotePath;
+                }
+            } catch (\Exception $e) {
+                // Fallback to local storage if network or Supabase is unavailable
+            }
         }
 
-        $resp = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'apikey' => $apiKey,
-            'Content-Type' => $file->getClientMimeType(),
-        ])->withBody(file_get_contents($file->getRealPath()), $file->getClientMimeType())->put($uploadUrl);
-
-        if (! $resp->successful()) {
-            throw new \RuntimeException('Gagal mengunggah foto profil: ' . $resp->body());
-        }
-
-        return rtrim($bucket, '/') . '/' . $remotePath;
+        // Fallback local storage
+        $stored = $file->storeAs('profile-images', $fileName, 'public');
+        return 'profile-images/' . $fileName;
     }
 
     protected function deleteProfilePhoto(string $fotoPath): void
