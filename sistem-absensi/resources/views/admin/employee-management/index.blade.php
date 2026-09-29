@@ -119,13 +119,18 @@
                 <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
                     <div class="flex items-center gap-3 min-w-0">
                         @php $photoUrl = supabase_public_url($employee->foto_profile); @endphp
-                        @if ($photoUrl)
-                            <img src="{{ $photoUrl }}" alt="{{ $employee->nama_pegawai }}" class="h-10 w-10 rounded-full object-cover flex-shrink-0 shadow-sm" />
-                        @else
-                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 flex-shrink-0 border border-slate-200">
+                        <div class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                            @if ($photoUrl)
+                                <img src="{{ $photoUrl }}"
+                                     alt="{{ $employee->nama_pegawai }}"
+                                     class="h-10 w-10 rounded-full object-cover shadow-sm border border-slate-200"
+                                     loading="lazy"
+                                     onerror="this.style.display='none'; if(this.nextElementSibling){this.nextElementSibling.classList.remove('hidden');}" />
+                            @endif
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm {{ $photoUrl ? 'hidden' : '' }}">
                                 {{ getInitials($employee->nama_pegawai) }}
                             </div>
-                        @endif
+                        </div>
                         <div class="min-w-0">
                             <h3 class="truncate text-sm font-bold text-slate-900">{{ $employee->nama_pegawai }}</h3>
                             <p class="text-xs text-slate-500">NIP: {{ $employee->nip ?? '-' }}</p>
@@ -240,13 +245,18 @@
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                                 <div class="flex items-center gap-3">
                                     @php $photoUrl = supabase_public_url($employee->foto_profile); @endphp
-                                    @if ($photoUrl)
-                                        <img src="{{ $photoUrl }}" alt="{{ $employee->nama_pegawai }}" class="h-10 w-10 rounded-full object-cover flex-shrink-0 shadow-sm" />
-                                    @else
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 flex-shrink-0 border border-slate-200">
+                                    <div class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                                        @if ($photoUrl)
+                                            <img src="{{ $photoUrl }}"
+                                                 alt="{{ $employee->nama_pegawai }}"
+                                                 class="h-10 w-10 rounded-full object-cover shadow-sm border border-slate-200"
+                                                 loading="lazy"
+                                                 onerror="this.style.display='none'; if(this.nextElementSibling){this.nextElementSibling.classList.remove('hidden');}" />
+                                        @endif
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 border border-slate-200 shadow-sm {{ $photoUrl ? 'hidden' : '' }}">
                                             {{ getInitials($employee->nama_pegawai) }}
                                         </div>
-                                    @endif
+                                    </div>
                                 </div>
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-gray-900">{{ $employee->nama_pegawai }}</td>
@@ -442,7 +452,7 @@
                 {{-- Profile Header: Foto di KIRI, Nama & NIP di KANAN --}}
                 <div class="flex items-center gap-3.5 sm:gap-4 bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-100">
                     <template x-if="detailData.foto_profile">
-                        <img :src="detailData.foto_profile" alt="Foto Pegawai" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm border-2 border-white flex-shrink-0" />
+                        <img :src="detailData.foto_profile" alt="Foto Pegawai" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm border-2 border-white flex-shrink-0" x-on:error="detailData.foto_profile = ''" />
                     </template>
                     <template x-if="!detailData.foto_profile">
                         <div class="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-slate-200 text-lg sm:text-xl font-bold text-slate-700 flex-shrink-0 border-2 border-white shadow-sm">
