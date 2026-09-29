@@ -6,7 +6,9 @@
 
 @php
     $savedColor = $savedColor ?? '#123D91';
-    $savedLogo  = $savedLogo ?? asset('images/logo-sip.png');
+    $savedLogo  = $savedLogo ?? '';
+    $organizationName = $organizationName ?? '';
+    $organizationInitials = $organizationInitials ?? getInitials($organizationName);
     $activeTab  = $activeTab ?? 'branding';
     $daftarLokasi = $daftarLokasi ?? [];
     $daftarRole = $daftarRole ?? [];
@@ -176,9 +178,15 @@
                 <div class="flex items-start gap-6">
                     <div class="relative flex-shrink-0">
                         <div class="h-24 w-24 overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
-                            <img :src="logoPreviewUrl" alt="Logo preview"
-                                 class="h-20 w-20 object-contain"
-                                 onerror="this.onerror=null;this.src='https://via.placeholder.com/80/E2E8F0/94A3B8?text=LOGO'">
+                            <img x-show="logoPreviewUrl && !logoImageFailed" :src="logoPreviewUrl" alt="Logo {{ $organizationName }}"
+                                 class="h-20 w-20 object-contain" x-on:error="logoImageFailed = true">
+                            <span x-show="!logoPreviewUrl || logoImageFailed" class="h-20 w-20 rounded-xl bg-primary text-white flex items-center justify-center text-xl font-bold">
+                                @if($organizationInitials)
+                                    {{ $organizationInitials }}
+                                @else
+                                    <i class="fa-solid fa-building" aria-hidden="true"></i>
+                                @endif
+                            </span>
                         </div>
                         <div x-show="logoChanged"
                              class="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 shadow">
@@ -321,7 +329,11 @@
                 {{-- Header Mockup --}}
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2.5">
-                        <img :src="logoPreviewUrl" alt="Logo" class="h-7 w-7 object-contain rounded-lg">
+                        <img x-show="logoPreviewUrl && !logoImageFailed" :src="logoPreviewUrl" alt="Logo {{ $organizationName }}" class="h-7 w-7 object-contain rounded-lg" x-on:error="logoImageFailed = true">
+                        <span x-show="!logoPreviewUrl || logoImageFailed" class="h-7 w-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" :style="`background-color: ${selectedHex}`">
+                            {{ $organizationInitials ?: '' }}
+                            @if(!$organizationInitials)<i class="fa-solid fa-building" aria-hidden="true"></i>@endif
+                        </span>
                         <div class="h-3 w-16 rounded bg-slate-800"></div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -383,7 +395,11 @@
 
                 <div class="flex flex-col items-center justify-center py-4 px-6 bg-slate-50 rounded-2xl">
                     <div class="w-full max-w-[200px] bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 text-center">
-                        <img :src="logoPreviewUrl" alt="Logo" class="h-8 w-8 object-contain mx-auto rounded-lg">
+                        <img x-show="logoPreviewUrl && !logoImageFailed" :src="logoPreviewUrl" alt="Logo {{ $organizationName }}" class="h-8 w-8 object-contain mx-auto rounded-lg" x-on:error="logoImageFailed = true">
+                        <span x-show="!logoPreviewUrl || logoImageFailed" class="h-8 w-8 rounded-lg mx-auto flex items-center justify-center text-[10px] font-bold text-white" :style="`background-color: ${selectedHex}`">
+                            {{ $organizationInitials ?: '' }}
+                            @if(!$organizationInitials)<i class="fa-solid fa-building" aria-hidden="true"></i>@endif
+                        </span>
                         <div class="h-2.5 w-16 rounded bg-slate-800 mx-auto"></div>
                         <div class="space-y-1.5">
                             <div class="h-4 w-full rounded-lg bg-slate-100 border border-slate-200"></div>
@@ -1293,6 +1309,7 @@ document.addEventListener('alpine:init', () => {
         savedLogo:      initialLogo,
         selectedHex:    initialColor,
         logoPreviewUrl: initialLogo,
+        logoImageFailed: false,
         logoFileName:   '',
         logoFile:       null,
         logoErrorMessage: '',
@@ -1445,6 +1462,7 @@ document.addEventListener('alpine:init', () => {
             this.logoFile       = file;
             this.logoFileName   = file.name;
             this.logoPreviewUrl = URL.createObjectURL(file);
+            this.logoImageFailed = false;
         },
 
         onSubmit() {

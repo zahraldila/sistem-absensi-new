@@ -3,20 +3,31 @@
     {{-- HEADER --}}
     {{-- ========================= --}}
     <div class="px-5 pt-5">
+        @php
+            $activeOrgId = \App\Helpers\OrganizationHelper::getActiveOrganizationId();
+            $activeOrg = $activeOrgId ? \App\Models\Organization::find($activeOrgId) : null;
+            $companyName = $activeOrg ? $activeOrg->nama_organisasi : 'Nama Perusahaan';
+            $companyInitials = getInitials($companyName);
+            $companyLogo = company_logo_url();
+            $userRoleDisplay = Auth::user()?->roleAkses?->nama_role ?? Auth::user()?->role ?? 'User';
+        @endphp
         <div class="flex items-center gap-3">
             {{-- Logo --}}
             <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-white flex items-center justify-center p-1 border border-slate-100 shadow-sm">
-                <img src="{{ company_logo_url() }}" alt="SIP Logo" class="h-full w-full object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/150/000000/FFFFFF?text=SIP';">
+                @if($companyLogo)
+                    <img src="{{ $companyLogo }}" alt="Logo {{ $companyName }}" class="h-full w-full object-contain" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                @endif
+                <span @if($companyLogo) hidden @endif class="h-full w-full rounded-lg bg-primary text-white flex items-center justify-center text-xs font-bold">
+                    @if($companyInitials)
+                        {{ $companyInitials }}
+                    @else
+                        <i class="fa-solid fa-building" aria-hidden="true"></i>
+                    @endif
+                </span>
             </div>
 
             {{-- Company --}}
             <div class="flex flex-col">
-                @php
-                    $activeOrgId = \App\Helpers\OrganizationHelper::getActiveOrganizationId();
-                    $activeOrg = $activeOrgId ? \App\Models\Organization::find($activeOrgId) : null;
-                    $companyName = $activeOrg ? $activeOrg->nama_organisasi : 'Nama Perusahaan';
-                    $userRoleDisplay = Auth::user()?->roleAkses?->nama_role ?? Auth::user()?->role ?? 'User';
-                @endphp
                 <h2 class="text-[16px] font-semibold text-slate-900 leading-tight">
                     {{ $companyName }}
                 </h2>

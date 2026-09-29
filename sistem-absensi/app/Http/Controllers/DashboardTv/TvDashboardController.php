@@ -19,7 +19,7 @@ class TvDashboardController extends Controller
         
         // Resolve branding without session
         $logo = DB::table('settings')->where('organization_id', $org->organization_id)->where('key', 'company_logo')->value('value');
-        $logoUrl = asset('images/logo-sip.png');
+        $logoUrl = null;
         if ($logo && trim($logo) !== '') {
             $logo = trim($logo);
             if (preg_match('/^https?:\/\//i', $logo)) {
@@ -39,6 +39,7 @@ class TvDashboardController extends Controller
             'isDemo' => $request->has('date'),
             'organizationName' => $org->nama_organisasi,
             'logoUrl' => $logoUrl,
+            'organizationInitials' => getInitials($org->nama_organisasi),
             'displayToken' => $displayToken
         ]));
     }

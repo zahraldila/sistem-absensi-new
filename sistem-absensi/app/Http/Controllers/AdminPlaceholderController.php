@@ -46,6 +46,8 @@ class AdminPlaceholderController extends Controller
             
             $savedColor = \App\Models\Setting::get('primary_color', '#123D91');
             $savedLogo  = company_logo_url();
+            $organizationName = \App\Models\Organization::where('organization_id', $orgId)->value('nama_organisasi');
+            $organizationInitials = getInitials($organizationName);
             $activeTab  = $request->query('tab', 'branding');
 
             // ── Tahap 4B: Proteksi per-tab Settings ──────────────────────────
@@ -89,6 +91,8 @@ class AdminPlaceholderController extends Controller
             return view('admin.settings.branding', compact(
                 'savedColor',
                 'savedLogo',
+                'organizationName',
+                'organizationInitials',
                 'daftarLokasi',
                 'activeTab',
                 'daftarRole',
@@ -529,6 +533,11 @@ class AdminPlaceholderController extends Controller
         }
 
         $bucket = config('supabase.assets_bucket', 'company-assets');
+        $caBundle = config('supabase.ca_bundle');
+        if ($caBundle && ! is_file($caBundle)) {
+            throw new \RuntimeException('CA bundle Supabase tidak ditemukan. Periksa SUPABASE_CA_BUNDLE.');
+        }
+
         $baseUrl = rtrim($baseUrl, '/');
         if (! preg_match('/^https?:\/\//i', $baseUrl)) {
             $baseUrl = 'https://' . ltrim($baseUrl, '/');
@@ -536,7 +545,7 @@ class AdminPlaceholderController extends Controller
 
         $uploadUrl = $baseUrl . '/storage/v1/object/' . rawurlencode($bucket) . '/' . $remotePath;
 
-        $resp = Http::withHeaders([
+        $resp = Http::withOptions(['verify' => $caBundle ?: true])->withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
             'apikey' => $apiKey,
             'Content-Type' => $file->getClientMimeType(),
@@ -544,7 +553,7 @@ class AdminPlaceholderController extends Controller
         ])->withBody(file_get_contents($file->getRealPath()), $file->getClientMimeType())->post($uploadUrl);
 
         if (! $resp->successful()) {
-            $resp = Http::withHeaders([
+            $resp = Http::withOptions(['verify' => $caBundle ?: true])->withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'apikey' => $apiKey,
                 'Content-Type' => $file->getClientMimeType(),
