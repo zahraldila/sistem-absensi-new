@@ -84,7 +84,7 @@
                         <input
                             x-data="{ _t: null }"
                             @input="clearTimeout(_t); _t = setTimeout(() => $el.closest('form').submit(), 400)"
-                            type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari nama, department, atau role..." class="w-full rounded-2xl border border-gray-300 bg-white py-2.5 sm:py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+                            type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari nama, divisi, atau jabatan..." class="w-full rounded-2xl border border-gray-300 bg-white py-2.5 sm:py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                 </div>
 
@@ -150,12 +150,12 @@
                 {{-- Grid Department & Role --}}
                 <div class="grid grid-cols-2 gap-2.5 text-xs">
                     <div class="rounded-xl bg-slate-50 p-2.5">
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Department</p>
+                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Divisi</p>
                         <p class="font-medium text-slate-800 mt-0.5 truncate">{{ $employee->masterDivisi->nama_divisi ?? '-' }}</p>
                     </div>
 
                     <div class="rounded-xl bg-slate-50 p-2.5">
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Role / Jabatan</p>
+                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Jabatan</p>
                         <p class="font-medium text-slate-800 mt-0.5 truncate">{{ $employee->masterJabatan->nama_jabatan ?? '-' }}</p>
                     </div>
                 </div>
@@ -233,8 +233,8 @@
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Photo</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Nama</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">NIP</th>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Department</th>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Role</th>
+                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Divisi</th>
+                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Jabatan</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Action</th>
                     </tr>
@@ -477,12 +477,12 @@
                 {{-- Detail Grid --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
                     <div class="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Department</p>
+                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Divisi</p>
                         <p class="font-semibold text-slate-800 mt-0.5 truncate" x-text="detailData.divisi_name || '-'"></p>
                     </div>
 
                     <div class="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Role / Jabatan</p>
+                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Jabatan</p>
                         <p class="font-semibold text-slate-800 mt-0.5 truncate" x-text="detailData.jabatan_name || '-'"></p>
                     </div>
 

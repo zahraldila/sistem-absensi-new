@@ -25,11 +25,11 @@
             <tr>
                 <td><strong>Status</strong></td>
                 <td>{{ $filters['status'] }}</td>
-                <td><strong>Department</strong></td>
+                <td><strong>Divisi</strong></td>
                 <td>{{ $filters['divisi'] }}</td>
             </tr>
             <tr>
-                <td><strong>Role</strong></td>
+                <td><strong>Jabatan</strong></td>
                 <td>{{ $filters['role'] }}</td>
                 <td><strong>Karyawan</strong></td>
                 <td>{{ $filters['pegawai'] }}</td>
@@ -44,8 +44,8 @@
                 <th style="width: 18%;">Nama Pegawai</th>
                 <th style="width: 12%;">NIP</th>
                 <th style="width: 12%;">Employee ID</th>
-                <th style="width: 18%;">Department</th>
-                <th style="width: 12%;">Role</th>
+                <th style="width: 18%;">Divisi</th>
+                <th style="width: 12%;">Jabatan</th>
                 <th style="width: 10%;">Status</th>
                 <th style="width: 18%;">Email</th>
                 <th style="width: 15%;">No Handphone</th>
@@ -58,8 +58,8 @@
                 <td>{{ $row['Nama Pegawai'] }}</td>
                 <td>{{ $row['NIP'] }}</td>
                 <td>{{ $row['Employee ID'] }}</td>
-                <td>{{ $row['Department'] }}</td>
-                <td>{{ $row['Role'] }}</td>
+                <td>{{ $row['Divisi'] ?? $row['Department'] }}</td>
+                <td>{{ $row['Jabatan'] ?? $row['Role'] }}</td>
                 <td>{{ $row['Status'] }}</td>
                 <td>{{ $row['Email'] }}</td>
                 <td>{{ $row['No Handphone'] }}</td>
