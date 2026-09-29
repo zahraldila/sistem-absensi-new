@@ -80,10 +80,8 @@ class AuthenticationControllers extends Controller
 
             $remember = $request->boolean('remember');
 
-            // Login user tanpa remember-token DB (kolom remember_token tidak ada di tabel akun).
-            // Fitur "Ingat Saya" ditangani via session: jika dicentang, lastActivityTime tidak
-            // disimpan sehingga SessionTimeout middleware tidak akan men-expire sesi tersebut.
-            Auth::login($akun, false);
+            // Login user dengan remember-token DB jika "Ingat Saya" dicentang.
+            Auth::login($akun, $remember);
 
             // Regenerate session untuk keamanan
             $request->session()->regenerate();

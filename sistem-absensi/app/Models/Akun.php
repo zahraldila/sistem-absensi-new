@@ -26,30 +26,12 @@ class Akun extends Authenticatable
 
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     // Note: password hashing is handled in service/controller using Hash::make().
     // Keep casts empty to avoid automatic double-hashing.
     protected $casts = [];
-
-    /**
-     * Disable remember-token functionality karena kolom `remember_token`
-     * tidak ada di tabel `akun`. Fitur "Ingat Saya" ditangani via session.
-     */
-    public function getRememberToken(): string
-    {
-        return '';
-    }
-
-    public function setRememberToken($value): void
-    {
-        // Sengaja dikosongkan — tidak ada kolom remember_token di tabel akun.
-    }
-
-    public function getRememberTokenName(): string
-    {
-        return '';
-    }
 
     public function pegawai(): BelongsTo
     {

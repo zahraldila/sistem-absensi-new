@@ -14,6 +14,20 @@ class SessionTimeout
     public function handle(Request $request, Closure $next)
     {
         if (Auth::check()) {
+            $akun = Auth::user();
+
+            // Populate session metadata jika user kembali melalui remember-me cookie
+            if (! Session::has('role')) {
+                $pegawai = $akun->pegawai;
+                Session::put([
+                    'akun_id' => $akun->akun_id,
+                    'pegawai_id' => $akun->pegawai_id,
+                    'role' => $akun->role,
+                    'nama_pegawai' => $pegawai ? $pegawai->nama_pegawai : null,
+                    'email_pegawai' => $pegawai ? $pegawai->email : null,
+                ]);
+            }
+
             $last = Session::get('lastActivityTime');
             $now = time();
 
@@ -36,7 +50,9 @@ class SessionTimeout
                     ->withErrors(['message' => $message]);
             }
 
-            Session::put('lastActivityTime', $now);
+            if ($last) {
+                Session::put('lastActivityTime', $now);
+            }
         }
 
         return $next($request);
