@@ -61,7 +61,7 @@
                 <label class="mb-1 block text-sm font-medium text-gray-700">Role Akses</label>
                 @php
                     $currentRole = old('role', $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Pegawai');
-                    if (strtolower($currentRole) === 'admin') $currentRole = 'Super Admin';
+                    if (strtolower($currentRole) === 'admin') $currentRole = 'Admin';
                     elseif (strtolower($currentRole) === 'pegawai' || strtolower($currentRole) === 'karyawan') $currentRole = 'Pegawai';
                     elseif (strtolower($currentRole) === 'hr' || strtolower($currentRole) === 'hrd' || strtolower($currentRole) === 'hr / hrd') $currentRole = 'HR / HRD';
                     elseif (strtolower($currentRole) === 'direktur') $currentRole = 'Direktur';
@@ -73,7 +73,6 @@
                             <option value="{{ $mr->nama_role }}" {{ $currentRole == $mr->nama_role ? 'selected' : '' }}>{{ $mr->nama_role }}</option>
                         @endforeach
                     @else
-                        <option value="Super Admin" {{ $currentRole == 'Super Admin' ? 'selected' : '' }}>Super Admin</option>
                         <option value="HR / HRD" {{ $currentRole == 'HR / HRD' ? 'selected' : '' }}>HR / HRD</option>
                         <option value="Direktur" {{ $currentRole == 'Direktur' ? 'selected' : '' }}>Direktur</option>
                         <option value="Pegawai" {{ $currentRole == 'Pegawai' ? 'selected' : '' }}>Pegawai</option>

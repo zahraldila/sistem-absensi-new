@@ -21,15 +21,15 @@ class PrivilegeMiddleware
             return redirect('/login');
         }
 
-        // Authorization depends on role_id mapping if available
-        if (!empty($user->role_id) && $user->roleAkses) {
-            if (!$user->roleAkses->hasPrivilege($privilege)) {
+        // A mapped role is authoritative; never fall back to the legacy string
+        // when a role_id exists but no corresponding role can be loaded.
+        if (!empty($user->role_id)) {
+            $role = $user->roleAkses;
+            if (! $role || ! $role->hasPrivilege($privilege)) {
                 abort(403, "Akses ditolak: Anda tidak memiliki privilege [{$privilege}].");
             }
         } else {
-            // Fallback for string legacy role without role_id
-            $roleStr = strtolower($user->role);
-            if ($roleStr === 'super admin') {
+            if ($user->isSuperAdmin()) {
                 // Legacy Super Admin bypass
             } else {
                 abort(403, "Akses ditolak: Akun Anda belum dipetakan ke role yang memiliki privilege [{$privilege}].");

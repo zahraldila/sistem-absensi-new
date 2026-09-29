@@ -212,18 +212,6 @@ class EmployeeManagementService
 
         if (is_string($roleInput) && trim($roleInput) !== '') {
             $normalized = trim($roleInput);
-            $lower = strtolower($normalized);
-
-            if (in_array($lower, ['admin', 'super_admin', 'super admin'])) {
-                $normalized = 'Super Admin';
-            } elseif (in_array($lower, ['hr', 'hrd', 'hr / hrd'])) {
-                $normalized = 'HR / HRD';
-            } elseif (in_array($lower, ['direktur', 'director'])) {
-                $normalized = 'Direktur';
-            } elseif (in_array($lower, ['pegawai', 'karyawan'])) {
-                $normalized = 'Pegawai';
-            }
-
             $found = $masterRoles->first(function ($r) use ($normalized) {
                 return strcasecmp($r->nama_role, $normalized) === 0;
             });
@@ -233,12 +221,9 @@ class EmployeeManagementService
             }
         }
 
-        $defaultRole = $masterRoles->firstWhere('nama_role', 'Pegawai') ?? $masterRoles->first();
-
-        return [
-            'role_id' => $defaultRole?->role_id,
-            'nama_role' => $defaultRole?->nama_role ?? 'Pegawai',
-        ];
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'role' => 'Role akses tidak valid untuk organisasi ini.',
+        ]);
     }
 
     public function createDivision(string $name)

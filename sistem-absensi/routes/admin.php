@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApprovalControllers;
 
-Route::prefix('admin')->middleware(['web', 'auth', 'role:Admin,Super Admin', 'org.context'])->group(function () {
+Route::prefix('admin')->middleware(['web', 'auth', 'admin.access', 'org.context'])->group(function () {
 
     // ── Super Admin Organization Selection ───────────────────────────────────
     Route::get('/select-organization', [\App\Http\Controllers\OrganizationSelectionController::class, 'select'])->name('admin.organization.select');

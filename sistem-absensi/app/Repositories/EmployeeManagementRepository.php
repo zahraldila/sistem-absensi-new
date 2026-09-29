@@ -114,10 +114,7 @@ class EmployeeManagementRepository
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
         return Role::query()
-            ->where(function ($q) use ($orgId) {
-                $q->whereNull('organization_id')
-                  ->orWhere('organization_id', $orgId);
-            })
+            ->where('organization_id', $orgId)
             ->orderBy('role_id')
             ->get();
     }

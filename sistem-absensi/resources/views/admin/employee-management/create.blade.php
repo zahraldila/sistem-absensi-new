@@ -67,7 +67,6 @@
                             <option value="{{ $mr->nama_role }}" {{ old('role', 'Pegawai') == $mr->nama_role ? 'selected' : '' }}>{{ $mr->nama_role }}</option>
                         @endforeach
                     @else
-                        <option value="Super Admin" {{ old('role') == 'Super Admin' ? 'selected' : '' }}>Super Admin</option>
                         <option value="HR / HRD" {{ old('role') == 'HR / HRD' ? 'selected' : '' }}>HR / HRD</option>
                         <option value="Direktur" {{ old('role') == 'Direktur' ? 'selected' : '' }}>Direktur</option>
                         <option value="Pegawai" {{ old('role', 'Pegawai') == 'Pegawai' ? 'selected' : '' }}>Pegawai</option>

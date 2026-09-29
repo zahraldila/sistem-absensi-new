@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use App\Helpers\OrganizationHelper;
 
 class AdminPlaceholderController extends Controller
@@ -77,7 +78,11 @@ class AdminPlaceholderController extends Controller
             $daftarLokasi = DB::table('lokasi_kantor')->where('organization_id', $orgId)->get();
 
             // Data Master Role & Privileges untuk Tab Role & Hak Akses
-            $daftarRole = \App\Models\Role::with('privileges')->withCount('akun')->orderBy('role_id')->get();
+            $daftarRole = \App\Models\Role::with('privileges')
+                ->withCount('akun')
+                ->where('organization_id', $orgId)
+                ->orderBy('role_id')
+                ->get();
             $daftarPrivilege = \App\Models\Privilege::orderBy('privilege_id')->get()->groupBy('kategori');
             $selectedRoleId = (int) $request->query('role_id', ($daftarRole->first()?->role_id ?? 1));
 
@@ -97,8 +102,13 @@ class AdminPlaceholderController extends Controller
 
     public function simpanRolePrivilege(Request $request)
     {
+        $orgId = OrganizationHelper::requireActiveOrganization();
+
         $request->validate([
-            'role_id'         => 'required|integer|exists:role,role_id',
+            'role_id'         => [
+                'required', 'integer',
+                Rule::exists('role', 'role_id')->where('organization_id', $orgId),
+            ],
             'privilege_ids'   => 'nullable|array',
             'privilege_ids.*' => 'integer|exists:privilege,privilege_id',
         ], [
@@ -107,30 +117,9 @@ class AdminPlaceholderController extends Controller
         ]);
 
         try {
-            $role = \App\Models\Role::findOrFail($request->role_id);
+            $role = \App\Models\Role::where('organization_id', $orgId)
+                ->findOrFail($request->role_id);
             $privilegeIds = $request->input('privilege_ids', []);
-
-            $user = Auth::user();
-            $isSuperAdmin = $user && (strtolower($user->role) === 'super admin' || $user->role_id === 1);
-            $orgId = OrganizationHelper::requireActiveOrganization();
-
-            if (!$isSuperAdmin) {
-                if ($role->organization_id !== $orgId) {
-                    abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk memodifikasi role dari organisasi lain.');
-                }
-                if (is_null($role->organization_id)) {
-                    abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk memodifikasi Global Role.');
-                }
-            }
-
-            // Proteksi Super Admin: Hak akses inti Kelola Role & Hak Akses wajib selalu aktif
-            $isSuperAdmin = strcasecmp($role->nama_role, 'Super Admin') === 0 || $role->role_id === 1;
-            if ($isSuperAdmin) {
-                $corePrivilegeId = \App\Models\Privilege::where('nama_privilege', 'kelola_role_hak_akses')->value('privilege_id');
-                if ($corePrivilegeId && ! in_array($corePrivilegeId, $privilegeIds)) {
-                    $privilegeIds[] = $corePrivilegeId;
-                }
-            }
 
             // Sinkronisasi hak akses ke tabel pivot role_privilege
             $role->privileges()->sync($privilegeIds);
@@ -167,8 +156,26 @@ class AdminPlaceholderController extends Controller
 
     public function tambahRole(Request $request)
     {
+        $orgId = OrganizationHelper::requireActiveOrganization();
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'nama_role' => 'required|string|min:2|max:50|unique:role,nama_role',
+            'nama_role' => [
+                'required', 'string', 'min:2', 'max:50',
+                function ($attribute, $value, $fail) use ($orgId) {
+                    if (strcasecmp(trim($value), 'Super Admin') === 0) {
+                        $fail('Nama role Super Admin dicadangkan untuk akses sistem.');
+                        return;
+                    }
+
+                    $exists = \App\Models\Role::where('organization_id', $orgId)
+                        ->whereRaw('LOWER(nama_role) = ?', [strtolower(trim($value))])
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('Nama role sudah terdaftar di organisasi ini.');
+                    }
+                },
+            ],
             'deskripsi' => 'nullable|string|max:200',
         ], [
             'nama_role.required' => 'Nama role wajib diisi.',
@@ -189,8 +196,6 @@ class AdminPlaceholderController extends Controller
         }
 
         try {
-            $orgId = OrganizationHelper::requireActiveOrganization();
-            
             $role = \App\Models\Role::create([
                 'nama_role' => trim($request->nama_role),
                 'deskripsi' => $request->filled('deskripsi') ? trim($request->deskripsi) : null,
@@ -230,34 +235,14 @@ class AdminPlaceholderController extends Controller
     public function hapusRole($id)
     {
         try {
-            $role = \App\Models\Role::withCount('akun')->find($id);
+            $orgId = OrganizationHelper::requireActiveOrganization();
+            $role = \App\Models\Role::withCount('akun')
+                ->where('organization_id', $orgId)
+                ->find($id);
             if (! $role) {
                 return redirect()
                     ->route('admin.tampilan-branding', ['tab' => 'roles'])
                     ->with('error', 'Data role tidak ditemukan.');
-            }
-
-            $user = Auth::user();
-            $isSuperAdmin = $user && (strtolower($user->role) === 'super admin' || $user->role_id === 1);
-            $orgId = OrganizationHelper::requireActiveOrganization();
-
-            if (!$isSuperAdmin) {
-                if ($role->organization_id !== $orgId) {
-                    abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk menghapus role dari organisasi lain.');
-                }
-                if (is_null($role->organization_id)) {
-                    abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk menghapus Global Role.');
-                }
-            }
-
-            // Proteksi Super Admin demi integritas sistem
-            if (strcasecmp($role->nama_role, 'Super Admin') === 0 || (int) $role->role_id === 1) {
-                return redirect()
-                    ->route('admin.tampilan-branding', [
-                        'tab' => 'roles',
-                        'role_id' => $role->role_id,
-                    ])
-                    ->with('error', 'Role Super Admin tidak dapat dihapus demi keamanan sistem.');
             }
 
             // Periksa apakah role masih direferensikan oleh akun/user

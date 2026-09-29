@@ -29,7 +29,7 @@ class EnsureOrganizationContext
 
         // If no organization ID is found
         if (!$orgId) {
-            if ($user->role === 'Super Admin') {
+            if ($user->isSuperAdmin()) {
                 // If they are on the selection page routes, let them pass
                 if (
                     $request->routeIs('admin.organization.select') || 

@@ -63,20 +63,12 @@ class EmployeeManagementController extends Controller
             ],
             'role_id' => [
                 'nullable', 'integer',
-                Rule::exists('role', 'role_id')->where(function ($q) use ($orgId) {
-                    $q->where(function($q2) use ($orgId) {
-                        $q2->whereNull('organization_id')->orWhere('organization_id', $orgId);
-                    });
-                    
-                    // Prevent assigning Super Admin unless the current user is a Super Admin
-                    $user = Auth::user();
-                    $isSuperAdmin = $user && (strtolower($user->role) === 'super admin' || $user->role_id === 1);
-                    if (!$isSuperAdmin) {
-                        $q->where('role_id', '!=', 1)->where('nama_role', '!=', 'Super Admin');
-                    }
-                })
+                Rule::exists('role', 'role_id')->where('organization_id', $orgId)
             ],
-            'role' => 'required|string|max:50',
+            'role' => [
+                'required', 'string', 'max:50',
+                Rule::exists('role', 'nama_role')->where('organization_id', $orgId),
+            ],
             'username' => ['nullable', 'string', 'max:100', 'unique:akun,username'],
             'password' => 'required|string|min:6|confirmed',
             'status' => 'nullable|string|max:50',
@@ -187,20 +179,12 @@ class EmployeeManagementController extends Controller
             ],
             'role_id' => [
                 'nullable', 'integer',
-                Rule::exists('role', 'role_id')->where(function ($q) use ($orgId) {
-                    $q->where(function($q2) use ($orgId) {
-                        $q2->whereNull('organization_id')->orWhere('organization_id', $orgId);
-                    });
-                    
-                    // Prevent assigning Super Admin unless the current user is a Super Admin
-                    $user = Auth::user();
-                    $isSuperAdmin = $user && (strtolower($user->role) === 'super admin' || $user->role_id === 1);
-                    if (!$isSuperAdmin) {
-                        $q->where('role_id', '!=', 1)->where('nama_role', '!=', 'Super Admin');
-                    }
-                })
+                Rule::exists('role', 'role_id')->where('organization_id', $orgId)
             ],
-            'role' => 'nullable|string|max:50',
+            'role' => [
+                'nullable', 'string', 'max:50',
+                Rule::exists('role', 'nama_role')->where('organization_id', $orgId),
+            ],
             'username' => [
                 'nullable',
                 'string',

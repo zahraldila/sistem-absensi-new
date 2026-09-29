@@ -178,7 +178,6 @@
                                     <option value="{{ $mr->nama_role }}">{{ $mr->nama_role }}</option>
                                 @endforeach
                             @else
-                                <option value="Super Admin">Super Admin</option>
                                 <option value="HR / HRD">HR / HRD</option>
                                 <option value="Direktur">Direktur</option>
                                 <option value="Pegawai">Pegawai</option>

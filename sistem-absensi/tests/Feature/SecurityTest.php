@@ -136,6 +136,79 @@ class SecurityTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_director_can_access_only_assigned_privileges()
+    {
+        $directorRole = Role::create([
+            'nama_role' => 'Direktur',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        $dashboardPrivilege = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->firstOrFail();
+        $directorRole->privileges()->attach($dashboardPrivilege->privilege_id);
+
+        $director = Akun::create([
+            'username' => 'director-a',
+            'password' => bcrypt('password'),
+            'role_id' => $directorRole->role_id,
+            'role' => 'Direktur',
+            'pegawai_id' => $this->hrPegawaiA->pegawai_id,
+        ]);
+
+        $dashboardResponse = $this->actingAs($director)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->get('/admin');
+        $dashboardResponse->assertOk();
+
+        $restrictedResponse = $this->actingAs($director)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->get('/admin/laporan-kehadiran');
+        $restrictedResponse->assertForbidden();
+    }
+
+    public function test_role_names_and_privileges_are_isolated_by_organization()
+    {
+        $roleA = Role::create([
+            'nama_role' => 'Direktur',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        $roleB = Role::create([
+            'nama_role' => 'Direktur',
+            'organization_id' => $this->orgB->organization_id,
+        ]);
+        $dashboardPrivilege = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->firstOrFail();
+        $roleA->privileges()->attach($dashboardPrivilege->privilege_id);
+
+        $this->actingAs($this->hrUserA)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id]);
+
+        $resolvedRole = app(\App\Services\EmployeeManagementService::class)->resolveRoleData('Direktur');
+
+        $this->assertSame($roleA->role_id, $resolvedRole['role_id']);
+        $this->assertTrue($roleA->hasPrivilege('lihat_dashboard'));
+        $this->assertFalse($roleB->hasPrivilege('lihat_dashboard'));
+    }
+
+    public function test_organization_user_cannot_assign_global_super_admin_role()
+    {
+        $organizationAdminRole = Role::create([
+            'nama_role' => 'Admin',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+
+        $this->actingAs($this->hrUserA)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id]);
+
+        $service = app(\App\Services\EmployeeManagementService::class);
+        $resolvedRole = $service->resolveRoleData('Admin');
+        $this->assertSame($organizationAdminRole->role_id, $resolvedRole['role_id']);
+
+        try {
+            $service->resolveRoleData('Super Admin');
+            $this->fail('A tenant user must not be able to assign the global Super Admin role.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('role', $exception->errors());
+        }
+    }
+
     // 6. Fake Super Admin role string cannot bypass role_id.
     public function test_fake_super_admin_string_cannot_bypass_role_id()
     {

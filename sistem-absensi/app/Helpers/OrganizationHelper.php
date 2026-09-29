@@ -19,7 +19,7 @@ class OrganizationHelper
             return null;
         }
 
-        if ($user->role === 'Super Admin') {
+        if ($user->isSuperAdmin()) {
             return session('active_organization_id');
         }
 

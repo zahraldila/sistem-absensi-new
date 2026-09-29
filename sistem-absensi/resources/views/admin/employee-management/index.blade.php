@@ -730,7 +730,7 @@
                     let rawRole = employee.role || 'Pegawai';
                     let mappedRole = rawRole;
                     if (rawRole.toLowerCase() === 'admin') {
-                        mappedRole = 'Super Admin';
+                        mappedRole = 'Admin';
                     } else if (rawRole.toLowerCase() === 'pegawai' || rawRole.toLowerCase() === 'karyawan') {
                         mappedRole = 'Pegawai';
                     } else if (rawRole.toLowerCase() === 'hr' || rawRole.toLowerCase() === 'hrd' || rawRole.toLowerCase() === 'hr / hrd') {

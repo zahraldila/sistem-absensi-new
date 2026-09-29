@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role'      => \App\Http\Middleware\RoleMiddleware::class,
+            'admin.access' => \App\Http\Middleware\AdminAccessMiddleware::class,
             // Tahap 4B: privilege middleware — proteksi halaman berdasarkan privilege
             'privilege' => \App\Http\Middleware\PrivilegeMiddleware::class,
             'superadmin.org' => \App\Http\Middleware\CheckSuperAdminOrganization::class,

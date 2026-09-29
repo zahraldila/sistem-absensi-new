@@ -21,7 +21,7 @@ class CheckSuperAdminOrganization
         }
 
         // Only enforce this for Super Admin
-        if ($user->role === 'Super Admin') {
+        if ($user->isSuperAdmin()) {
             // Check if they have an active organization in session
             if (!session()->has('active_organization_id')) {
                 // Biarkan lolos jika sedang berada di rute pemilihan organisasi, agar tidak terjadi redirect loop

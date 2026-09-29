@@ -43,6 +43,15 @@ class Akun extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
     }
 
+    public function isSuperAdmin(): bool
+    {
+        if ($this->roleAkses) {
+            return $this->roleAkses->isGlobalSuperAdmin();
+        }
+
+        return strtolower(trim((string) ($this->attributes['role'] ?? ''))) === 'super admin';
+    }
+
     /**
      * Accessor untuk $akun->role agar tetap kompatibel dengan pemanggilan string role lama.
      */

@@ -39,10 +39,21 @@ class Role extends Model
 
     public function hasPrivilege(string $namaPrivilege): bool
     {
-        if (strtolower($this->nama_role) === 'super admin' && is_null($this->organization_id)) {
+        if ($this->isGlobalSuperAdmin()) {
             return true;
         }
 
         return $this->privileges->contains('nama_privilege', $namaPrivilege);
+    }
+
+    public function isGlobalSuperAdmin(): bool
+    {
+        return strtolower($this->nama_role) === 'super admin'
+            && is_null($this->organization_id);
+    }
+
+    public function hasAnyPrivilege(): bool
+    {
+        return $this->isGlobalSuperAdmin() || $this->privileges()->exists();
     }
 }

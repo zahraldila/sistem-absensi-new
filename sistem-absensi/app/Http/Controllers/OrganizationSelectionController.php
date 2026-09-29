@@ -14,7 +14,7 @@ class OrganizationSelectionController extends Controller
     public function select()
     {
         // Pastikan hanya Super Admin yang bisa mengakses ini
-        if (Auth::user()->role !== 'Super Admin') {
+        if (! Auth::user()->isSuperAdmin()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -29,7 +29,7 @@ class OrganizationSelectionController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->role !== 'Super Admin') {
+        if (! Auth::user()->isSuperAdmin()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -52,7 +52,7 @@ class OrganizationSelectionController extends Controller
      */
     public function create()
     {
-        if (Auth::user()->role !== 'Super Admin') {
+        if (! Auth::user()->isSuperAdmin()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -64,7 +64,7 @@ class OrganizationSelectionController extends Controller
      */
     public function storeNew(Request $request)
     {
-        if (Auth::user()->role !== 'Super Admin') {
+        if (! Auth::user()->isSuperAdmin()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -86,15 +86,32 @@ class OrganizationSelectionController extends Controller
             'display_token' => (string) \Illuminate\Support\Str::uuid(),
         ]);
 
-        // 1. Ambil atau buat Role Admin global (tanpa organization_id)
-        $adminRole = \App\Models\Role::firstOrCreate(
-            ['nama_role' => 'Admin'],
-            ['organization_id' => null]
-        );
+        $roleTemplates = \App\Models\Role::with('privileges')
+            ->whereNull('organization_id')
+            ->where('nama_role', '!=', 'Super Admin')
+            ->get();
 
-        // 2. Ambil semua privilege dan pastikan terhubung ke role admin global
-        $privilegeIds = \App\Models\Privilege::pluck('privilege_id')->toArray();
-        $adminRole->privileges()->syncWithoutDetaching($privilegeIds);
+        foreach ($roleTemplates as $template) {
+            $localRole = \App\Models\Role::firstOrCreate(
+                [
+                    'nama_role' => $template->nama_role,
+                    'organization_id' => $organization->organization_id,
+                ],
+                ['deskripsi' => $template->deskripsi]
+            );
+            $localRole->privileges()->syncWithoutDetaching($template->privileges->modelKeys());
+        }
+
+        $adminRole = \App\Models\Role::firstOrCreate(
+            [
+                'nama_role' => 'Admin',
+                'organization_id' => $organization->organization_id,
+            ],
+            ['deskripsi' => 'Administrator organisasi']
+        );
+        $adminRole->privileges()->syncWithoutDetaching(
+            \App\Models\Privilege::pluck('privilege_id')->all()
+        );
 
         // 3. Buat Pegawai dummy untuk Admin
         $pegawai = \App\Models\Pegawai::create([
@@ -121,7 +138,7 @@ class OrganizationSelectionController extends Controller
      */
     public function switch(Request $request)
     {
-        if (Auth::user()->role !== 'Super Admin') {
+        if (! Auth::user()->isSuperAdmin()) {
             abort(403, 'Akses ditolak.');
         }
 
