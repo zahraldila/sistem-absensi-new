@@ -59,9 +59,9 @@
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
                     @if($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="Logo {{ $organizationName }}" class="w-full h-full object-contain" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                        <img src="{{ $logoUrl }}" alt="Logo {{ $organizationName }}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
                     @endif
-                    <span @if($logoUrl) hidden @endif class="w-full h-full rounded-lg bg-primary text-white flex items-center justify-center text-xs font-bold">
+                    <span class="w-full h-full rounded-lg bg-primary text-white flex items-center justify-center text-xs font-bold {{ $logoUrl ? 'hidden' : '' }}">
                         @if($organizationInitials)
                             {{ $organizationInitials }}
                         @else
