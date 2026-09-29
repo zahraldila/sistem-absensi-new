@@ -358,7 +358,7 @@ class EmployeeManagementService
             $this->repository->updateAccount($pegawai->akun, $akunUpdate);
         } else {
             // Jika pegawai belum memiliki data akun (misal data legacy/import), buat akun baru
-            $roleData = $this->resolveRoleData($data['role_id'] ?? $data['role'] ?? 'Pegawai');
+            $roleData = $this->resolveRoleData($data['role_id'] ?? $data['role'] ?? 'Anggota');
             $username = trim($data['username'] ?? '') !== '' ? trim($data['username']) : $this->buildUsername($pegawai);
 
             $akunData = [
