@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Helpers\OrganizationHelper;
 use App\Models\Approval;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,14 +21,16 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
 
     public function query(): Builder
     {
+        $orgId = $this->filters['organization_id'] ?? OrganizationHelper::getActiveOrganizationId();
+
         $query = Approval::query()
-            ->with(['pegawai.masterDivisi', 'pegawai.masterJabatan'])
-            ->whereHas('pegawai', function ($q) {
-                $q->where('status', 'Aktif')
-                  ->whereDoesntHave('akun', function ($q2) {
-                      $q2->where('role', 'admin');
-                  });
+            ->with(['pegawai.masterDivisi', 'pegawai.masterJabatan']);
+
+        if ($orgId) {
+            $query->whereHas('pegawai', function ($q) use ($orgId) {
+                $q->where('organization_id', $orgId);
             });
+        }
 
         if (!empty($this->filters['tanggal_awal'])) {
             $query->whereDate(
@@ -46,10 +49,16 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
         }
 
         if (!empty($this->filters['status']) && $this->filters['status'] !== 'Semua') {
-            $query->where(
-                'status_pengajuan',
-                $this->filters['status']
-            );
+            $statusVal = strtolower(trim($this->filters['status']));
+            if ($statusVal === 'pending' || $statusVal === 'menunggu') {
+                $query->whereIn('status_pengajuan', ['Pending', 'Menunggu']);
+            } elseif ($statusVal === 'disetujui') {
+                $query->where('status_pengajuan', 'Disetujui');
+            } elseif ($statusVal === 'ditolak') {
+                $query->where('status_pengajuan', 'Ditolak');
+            } else {
+                $query->where('status_pengajuan', $this->filters['status']);
+            }
         }
 
         if (!empty($this->filters['pegawai_id']) && $this->filters['pegawai_id'] !== 'Semua') {
@@ -99,13 +108,17 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
             $formattedDate = '-';
         }
 
+        $statusDisplay = in_array($approval->status_pengajuan, ['Pending', 'Menunggu'], true)
+            ? 'Pending'
+            : ($approval->status_pengajuan ?? '-');
+
         return [
             $no,
             $approval->pegawai?->nama_pegawai ?? '-',
             $approval->pegawai?->masterDivisi?->nama_divisi ?? $approval->pegawai?->jabatan ?? '-',
             $approval->jenis_pengajuan ?? '-',
             $formattedDate,
-            $approval->status_pengajuan ?? '-',
+            $statusDisplay,
             $approval->keterangan ?? '-',
         ];
     }
