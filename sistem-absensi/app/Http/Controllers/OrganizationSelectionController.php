@@ -86,22 +86,6 @@ class OrganizationSelectionController extends Controller
             'display_token' => (string) \Illuminate\Support\Str::uuid(),
         ]);
 
-        $roleTemplates = \App\Models\Role::with('privileges')
-            ->whereNull('organization_id')
-            ->where('nama_role', '!=', 'Super Admin')
-            ->get();
-
-        foreach ($roleTemplates as $template) {
-            $localRole = \App\Models\Role::firstOrCreate(
-                [
-                    'nama_role' => $template->nama_role,
-                    'organization_id' => $organization->organization_id,
-                ],
-                ['deskripsi' => $template->deskripsi]
-            );
-            $localRole->privileges()->syncWithoutDetaching($template->privileges->modelKeys());
-        }
-
         $memberRole = \App\Models\Role::firstOrCreate(
             [
                 'nama_role' => 'Anggota',
@@ -110,34 +94,6 @@ class OrganizationSelectionController extends Controller
             ['deskripsi' => 'Akun anggota untuk aplikasi mobile dan presensi.']
         );
         $memberRole->privileges()->detach();
-
-        $adminRole = \App\Models\Role::firstOrCreate(
-            [
-                'nama_role' => 'Admin',
-                'organization_id' => $organization->organization_id,
-            ],
-            ['deskripsi' => 'Administrator organisasi']
-        );
-        $adminRole->privileges()->syncWithoutDetaching(
-            \App\Models\Privilege::pluck('privilege_id')->all()
-        );
-
-        // 3. Buat Pegawai dummy untuk Admin
-        $pegawai = \App\Models\Pegawai::create([
-            'nama_pegawai' => 'Admin ' . $organization->nama_organisasi,
-            'email' => 'admin_' . strtolower(trim($organization->kode_organisasi)) . '@gmail.com',
-            'status' => 'Aktif',
-            'organization_id' => $organization->organization_id,
-        ]);
-
-        // 4. Buat Akun login untuk Admin tersebut
-        \App\Models\Akun::create([
-            'username' => 'admin_' . strtolower(trim($organization->kode_organisasi)),
-            'password' => \Illuminate\Support\Facades\Hash::make('admin123'),
-            'role' => 'Admin',
-            'role_id' => $adminRole->role_id,
-            'pegawai_id' => $pegawai->pegawai_id,
-        ]);
 
         return redirect()->route('admin.organization.select')->with('success', 'Organisasi baru berhasil ditambahkan.');
     }

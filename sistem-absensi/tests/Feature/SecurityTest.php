@@ -187,6 +187,55 @@ class SecurityTest extends TestCase
         $this->assertFalse($roleB->hasPrivilege('lihat_dashboard'));
     }
 
+    public function test_new_organization_starts_with_only_unprivileged_member_role()
+    {
+        $superAdmin = Akun::create([
+            'username' => 'org-creator',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.organization.storeNew'), [
+                'nama_organisasi' => 'New Organization',
+                'kode_organisasi' => 'NEWORG',
+            ])
+            ->assertRedirect(route('admin.organization.select'));
+
+        $organization = Organization::where('kode_organisasi', 'NEWORG')->firstOrFail();
+        $roles = Role::where('organization_id', $organization->organization_id)->get();
+
+        $this->assertSame(['Anggota'], $roles->pluck('nama_role')->all());
+        $this->assertFalse($roles->first()->hasAnyPrivilege());
+        $this->assertFalse(Pegawai::where('organization_id', $organization->organization_id)->exists());
+    }
+
+    public function test_role_privilege_update_cannot_target_another_organization_role()
+    {
+        $foreignRole = Role::create([
+            'nama_role' => 'Foreign Role',
+            'organization_id' => $this->orgB->organization_id,
+        ]);
+        $superAdmin = Akun::create([
+            'username' => 'role-scope-check',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+        $dashboardPrivilege = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->firstOrFail();
+
+        $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->post(route('admin.settings.roles.simpan'), [
+                'role_id' => $foreignRole->role_id,
+                'privilege_ids' => [$dashboardPrivilege->privilege_id],
+            ])
+            ->assertSessionHasErrors('role_id');
+
+        $this->assertFalse($foreignRole->fresh()->hasPrivilege('lihat_dashboard'));
+    }
+
     public function test_organization_user_cannot_assign_global_super_admin_role()
     {
         $organizationAdminRole = Role::create([
