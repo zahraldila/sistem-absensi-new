@@ -18,6 +18,7 @@ class OfficeLocation {
   final double? latitude;
   final double? longitude;
   final int? radiusMeter;
+  final int? organizationId;
 
   OfficeLocation({
     required this.id,
@@ -25,17 +26,39 @@ class OfficeLocation {
     this.latitude,
     this.longitude,
     this.radiusMeter,
+    this.organizationId,
   });
 
   factory OfficeLocation.fromJson(Map<String, dynamic> json) {
     return OfficeLocation(
-      id: int.parse(json['lokasi_id'].toString()),
+      id: int.parse((json['lokasi_id'] ?? json['id']).toString()),
       name: json['nama_kantor']?.toString() ?? 'Cabang',
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
       radiusMeter: int.tryParse(json['radius_meter']?.toString() ?? ''),
+      organizationId: json['organization_id'] != null
+          ? int.tryParse(json['organization_id'].toString())
+          : null,
     );
   }
+}
+
+class OrganizationInfo {
+  final int id;
+  final String name;
+  final String code;
+  final String? logoUrl;
+  final String primaryColorHex;
+  final String status;
+
+  OrganizationInfo({
+    required this.id,
+    required this.name,
+    required this.code,
+    this.logoUrl,
+    required this.primaryColorHex,
+    required this.status,
+  });
 }
 
 class AttendanceResult {
@@ -67,28 +90,81 @@ class AttendanceResult {
 class AttendanceService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Mengambil profil perusahaan (nama, logo, primary_color) dari tabel `settings`
-  Future<Map<String, String?>> fetchCompanyProfile() async {
-    try {
-      final List<dynamic> data = await _supabase
-          .from('settings')
-          .select('key, value');
+  /// Validasi Kode Organisasi / Display Token untuk Aktivasi Perangkat
+  Future<OrganizationInfo> validateOrganizationCode(String inputCode) async {
+    final cleanCode = inputCode.trim();
+    if (cleanCode.isEmpty) {
+      throw Exception('Silakan masukkan Kode Organisasi atau Token.');
+    }
 
-      String? name = 'PT Selada Indonesia Produktif';
+    try {
+      // 1. Cari organisasi berdasarkan kode_organisasi atau display_token
+      final List<dynamic> orgResults = await _supabase
+          .from('organizations')
+          .select('organization_id, nama_organisasi, kode_organisasi, status, display_token')
+          .or('kode_organisasi.ilike.$cleanCode,display_token.eq.$cleanCode')
+          .limit(1);
+
+      if (orgResults.isEmpty) {
+        throw Exception('Organisasi dengan kode/token "$cleanCode" tidak ditemukan.');
+      }
+
+      final org = orgResults.first;
+      final String status = org['status']?.toString().toLowerCase() ?? 'aktif';
+      if (status != 'aktif' && status != 'active') {
+        throw Exception('Organisasi ini sedang nonaktif. Silakan hubungi Super Admin.');
+      }
+
+      final int orgId = int.parse(org['organization_id'].toString());
+      final String orgName = org['nama_organisasi']?.toString() ?? 'Organisasi';
+      final String orgCode = org['kode_organisasi']?.toString() ?? cleanCode;
+
+      // 2. Ambil branding dari tabel `settings` untuk organisasi ini
+      final branding = await fetchCompanyProfile(organizationId: orgId);
+
+      return OrganizationInfo(
+        id: orgId,
+        name: branding['company_name']?.isNotEmpty == true
+            ? branding['company_name']!
+            : orgName,
+        code: orgCode,
+        logoUrl: branding['company_logo'],
+        primaryColorHex: branding['primary_color'] ?? '#0891B2',
+        status: status,
+      );
+    } catch (e) {
+      if (e is Exception) rethrow;
+      debugPrint('Error validateOrganizationCode: $e');
+      throw Exception('Gagal memvalidasi kode organisasi. Periksa koneksi internet.');
+    }
+  }
+
+  /// Mengambil profil perusahaan (nama, logo, primary_color) dari tabel `settings` terisolasi per organisasi
+  Future<Map<String, String?>> fetchCompanyProfile({int? organizationId}) async {
+    try {
+      var query = _supabase.from('settings').select('key, value, organization_id');
+
+      if (organizationId != null) {
+        query = query.eq('organization_id', organizationId);
+      }
+
+      final List<dynamic> data = await query;
+
+      String? name;
       String? logoUrl;
       String? primaryColorHex = '#0891B2';
 
       if (data.isNotEmpty) {
         for (var row in data) {
-          if (row['key'] == 'company_name' && row['value'] != null) {
-            name = row['value'].toString();
-          } else if (row['key'] == 'company_logo' && row['value'] != null) {
-            final logoPath = row['value'].toString();
-            if (logoPath.isNotEmpty) {
-              logoUrl = '${SupabaseConfig.url}/storage/v1/object/public/$logoPath';
-            }
-          } else if (row['key'] == 'primary_color' && row['value'] != null) {
-            primaryColorHex = row['value'].toString();
+          final key = row['key']?.toString();
+          final val = row['value'];
+          if (key == 'company_name' && val != null && val.toString().isNotEmpty) {
+            name = val.toString();
+          } else if (key == 'company_logo' && val != null && val.toString().isNotEmpty) {
+            final logoPath = val.toString();
+            logoUrl = '${SupabaseConfig.url}/storage/v1/object/public/$logoPath';
+          } else if (key == 'primary_color' && val != null && val.toString().isNotEmpty) {
+            primaryColorHex = val.toString();
           }
         }
       }
@@ -101,20 +177,25 @@ class AttendanceService {
     } catch (e) {
       debugPrint('Error fetchCompanyProfile: $e');
       return {
-        'company_name': 'PT Selada Indonesia Produktif',
+        'company_name': null,
         'company_logo': null,
         'primary_color': '#0891B2',
       };
     }
   }
 
-  /// Mengambil daftar seluruh cabang / lokasi kantor aktif dari tabel `lokasi_kantor`
-  Future<List<OfficeLocation>> fetchLocations() async {
+  /// Mengambil daftar seluruh cabang / lokasi kantor aktif dari tabel `lokasi_kantor` terisolasi per organisasi
+  Future<List<OfficeLocation>> fetchLocations({int? organizationId}) async {
     try {
-      final List<dynamic> data = await _supabase
+      var query = _supabase
           .from('lokasi_kantor')
-          .select('lokasi_id, nama_kantor, latitude, longitude, radius_meter')
-          .order('lokasi_id', ascending: true);
+          .select('lokasi_id, nama_kantor, latitude, longitude, radius_meter, organization_id');
+
+      if (organizationId != null) {
+        query = query.eq('organization_id', organizationId);
+      }
+
+      final List<dynamic> data = await query.order('lokasi_id', ascending: true);
 
       if (data.isNotEmpty) {
         return data.map((e) => OfficeLocation.fromJson(e)).toList();
@@ -123,37 +204,30 @@ class AttendanceService {
       debugPrint('Error fetchLocations: $e');
     }
 
-    // Fallback default cabang kantor
-    return [
-      OfficeLocation(
-        id: 1,
-        name: 'Kantor Sulaksana',
-        latitude: -6.910194028769816,
-        longitude: 107.65072801284482,
-        radiusMeter: 100,
-      ),
-      OfficeLocation(
-        id: 2,
-        name: 'Kantor Cikawao',
-        latitude: -6.927558090870104,
-        longitude: 107.61457005582317,
-        radiusMeter: 100,
-      ),
-    ];
+    return [];
   }
 
-  /// Stream Realtime untuk sinkronisasi otomatis cabang dari Supabase
-  Stream<List<OfficeLocation>> streamLocations() {
-    return _supabase
-        .from('lokasi_kantor')
-        .stream(primaryKey: ['lokasi_id'])
-        .order('lokasi_id', ascending: true)
-        .map((data) => data.map((e) => OfficeLocation.fromJson(e)).toList());
+  /// Stream Realtime untuk sinkronisasi otomatis cabang dari Supabase per organisasi
+  Stream<List<OfficeLocation>> streamLocations({int? organizationId}) {
+    final stream = _supabase.from('lokasi_kantor').stream(primaryKey: ['lokasi_id']);
+    
+    return stream.map((data) {
+      var filtered = data;
+      if (organizationId != null) {
+        filtered = data
+            .where((e) =>
+                e['organization_id'] != null &&
+                int.tryParse(e['organization_id'].toString()) == organizationId)
+            .toList();
+      }
+      return filtered.map((e) => OfficeLocation.fromJson(e)).toList();
+    });
   }
 
-  /// Memproses presensi kartu NFC
+  /// Memproses presensi kartu NFC dengan isolasi organisasi ketat
   Future<AttendanceResult> processNfcTap(
     String nfcSerialNumber, {
+    int? organizationId,
     OfficeLocation? selectedLocation,
   }) async {
     // 1. Identifikasi kartu di tabel `nfc`
@@ -169,12 +243,12 @@ class AttendanceService {
 
     final int pegawaiId = int.parse(nfcData['pegawai_id'].toString());
 
-    // 2. Ambil data profil pegawai dari tabel `pegawai`
+    // 2. Ambil data profil pegawai dari tabel `pegawai` (termasuk organization_id)
     dynamic pegawaiData;
     try {
       pegawaiData = await _supabase
           .from('pegawai')
-          .select('pegawai_id, nama_pegawai, nip, status, foto_profile')
+          .select('pegawai_id, nama_pegawai, nip, status, foto_profile, organization_id')
           .eq('pegawai_id', pegawaiId)
           .maybeSingle();
     } catch (e) {
@@ -186,7 +260,16 @@ class AttendanceService {
       throw Exception('Data pegawai ($nfcSerialNumber) tidak ditemukan');
     }
 
-    // Validasi apakah akun pegawai berstatus Aktif
+    // 🔒 ISOLASI DATA MULTI-ORGANISASI:
+    // Validasi apakah pegawai milik organisasi yang aktif di perangkat ini
+    if (organizationId != null && pegawaiData['organization_id'] != null) {
+      final int employeeOrgId = int.parse(pegawaiData['organization_id'].toString());
+      if (employeeOrgId != organizationId) {
+        throw Exception('Kartu ini terdaftar pada organisasi lain. Presensi ditolak.');
+      }
+    }
+
+    // Validasi status pegawai (Harus Aktif)
     final String? employeeStatus = pegawaiData['status']?.toString().trim();
     if (employeeStatus == null || employeeStatus.toLowerCase() != 'aktif') {
       throw Exception('Akun pegawai kartu ($nfcSerialNumber) tidak aktif. Presensi ditolak.');
@@ -223,6 +306,7 @@ class AttendanceService {
         .maybeSingle();
 
     final String branchName = selectedLocation?.name ?? 'Kantor';
+    final int? locationId = selectedLocation?.id;
 
     // 4. Tentukan Alur Transaksi Multi-Session (Check In / Check Out Berulang)
     if (existingAttendance == null || existingAttendance['jam_checkout'] != null) {
@@ -230,9 +314,11 @@ class AttendanceService {
       // -> Lakukan CHECK-IN SESI BARU (INSERT)
       int? jadwalId;
       try {
-        final jadwal = await _supabase
-            .from('jadwal_kerja')
-            .select('jadwal_id')
+        var jadwalQuery = _supabase.from('jadwal_kerja').select('jadwal_id');
+        if (organizationId != null) {
+          jadwalQuery = jadwalQuery.eq('organization_id', organizationId);
+        }
+        final jadwal = await jadwalQuery
             .order('tanggal_berlaku', ascending: false)
             .limit(1)
             .maybeSingle();
@@ -253,6 +339,7 @@ class AttendanceService {
         'catatan': checkInNote,
         'latitude': currentLatitude,
         'longitude': currentLongitude,
+        if (locationId != null) 'lokasi_id': locationId,
         if (jadwalId != null) 'jadwal_id': jadwalId,
       };
 
