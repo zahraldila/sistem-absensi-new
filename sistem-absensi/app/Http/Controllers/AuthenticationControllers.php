@@ -25,13 +25,13 @@ class AuthenticationControllers extends Controller
     public function login(LoginRequest $request)
     {
         try {
-            $loginInput = $request->input('email');
-            $password = $request->input('password');
+            $loginInput = trim((string) $request->input('email'));
+            $password = (string) $request->input('password');
 
-            // Mencari akun berdasarkan username atau email pegawai
-            $akun = Akun::where('username', $loginInput)
+            // Mencari akun berdasarkan username atau email pegawai (case-insensitive & trimmed)
+            $akun = Akun::whereRaw('LOWER(username) = ?', [strtolower($loginInput)])
                 ->orWhereHas('pegawai', function ($query) use ($loginInput) {
-                    $query->where('email', $loginInput);
+                    $query->whereRaw('LOWER(email) = ?', [strtolower($loginInput)]);
                 })
                 ->first();
 
@@ -55,7 +55,7 @@ class AuthenticationControllers extends Controller
 
             if (! $akun || ! $validPassword) {
                 return back()
-                    ->withErrors(['email' => 'Username/Email atau password yang Anda masukkan salah.'])
+                    ->withErrors(['email' => 'Email/username atau password tidak valid.'])
                     ->onlyInput('email');
             }
 

@@ -43,7 +43,7 @@
         {{-- Username / Email --}}
         <div>
             <label for="email" class="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Username atau Email</label>
-            <div class="flex items-center gap-2.5 sm:gap-3 rounded-2xl border @error('email') border-red-400 bg-red-50/30 ring-1 ring-red-300 @else border-slate-300 bg-slate-50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary @enderror px-3.5 py-3 sm:px-4 sm:py-3.5 transition-all">
+            <div class="h-12 sm:h-[50px] flex items-center gap-2.5 sm:gap-3 rounded-2xl border @error('email') border-red-400 bg-red-50/30 ring-1 ring-red-300 @else border-slate-300 bg-slate-50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary @enderror px-3.5 sm:px-4 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 @error('email') text-red-400 @else text-slate-400 @enderror" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -67,7 +67,7 @@
         {{-- Password --}}
         <div>
             <label for="password" class="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Password</label>
-            <div class="flex items-center gap-2.5 sm:gap-3 rounded-2xl border @error('password') border-red-400 bg-red-50/30 ring-1 ring-red-300 @else border-slate-300 bg-slate-50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary @enderror px-3.5 py-3 sm:px-4 sm:py-3.5 transition-all">
+            <div class="h-12 sm:h-[50px] flex items-center gap-2.5 sm:gap-3 rounded-2xl border @error('password') border-red-400 bg-red-50/30 ring-1 ring-red-300 @else border-slate-300 bg-slate-50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary @enderror px-3.5 sm:px-4 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 @error('password') text-red-400 @else text-slate-400 @enderror" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <rect x="4" y="11" width="16" height="9" rx="2" stroke-width="2" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -78,8 +78,16 @@
                     id="password"
                     placeholder="Masukkan password akun"
                     class="w-full border-none bg-transparent p-0 text-sm text-slate-800 placeholder-slate-400 outline-none focus:outline-none focus:ring-0" />
-                <button type="button" @click="showPassword = !showPassword" class="shrink-0 p-1 text-slate-400 hover:text-slate-600 focus:outline-none" aria-label="Toggle password visibility">
-                    <i :class="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'" class="text-sm"></i>
+                <button type="button" @click="showPassword = !showPassword" class="shrink-0 flex items-center justify-center p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors" :title="showPassword ? 'Sembunyikan password' : 'Tampilkan password'" aria-label="Toggle password visibility">
+                    {{-- Eye Icon (ketika password tersembunyi) --}}
+                    <svg x-show="!showPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {{-- Eye Off Icon (ketika password terlihat) --}}
+                    <svg x-show="showPassword" x-cloak class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    </svg>
                 </button>
             </div>
             @error('password')
