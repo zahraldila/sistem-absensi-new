@@ -236,6 +236,30 @@ class SecurityTest extends TestCase
         $this->assertFalse($foreignRole->fresh()->hasPrivilege('lihat_dashboard'));
     }
 
+    public function test_new_role_defaults_to_dashboard_privilege_only()
+    {
+        $superAdmin = Akun::create([
+            'username' => 'role-creator',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->post(route('admin.settings.roles.tambah'), [
+                'nama_role' => 'Role Baru',
+            ])
+            ->assertRedirect();
+
+        $role = Role::where('organization_id', $this->orgA->organization_id)
+            ->where('nama_role', 'Role Baru')
+            ->firstOrFail();
+        $dashboardPrivilegeId = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->value('privilege_id');
+
+        $this->assertSame([$dashboardPrivilegeId], $role->privileges()->pluck('privilege.privilege_id')->all());
+    }
+
     public function test_organization_user_cannot_assign_global_super_admin_role()
     {
         $organizationAdminRole = Role::create([

@@ -215,11 +215,13 @@ class AdminPlaceholderController extends Controller
         }
 
         try {
+            $dashboardPrivilege = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->firstOrFail();
             $role = \App\Models\Role::create([
                 'nama_role' => trim($request->nama_role),
                 'deskripsi' => $request->filled('deskripsi') ? trim($request->deskripsi) : null,
                 'organization_id' => $orgId, // Inject active organization ID
             ]);
+            $role->privileges()->sync([$dashboardPrivilege->privilege_id]);
 
             // Catat log aktivitas
             $user = Auth::user();
