@@ -180,7 +180,7 @@
                             @else
                                 <option value="HR / HRD">HR / HRD</option>
                                 <option value="Direktur">Direktur</option>
-                                <option value="Pegawai">Pegawai</option>
+                                <option value="Anggota">Anggota</option>
                             @endif
                         </select>
                         @error('role')

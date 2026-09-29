@@ -6,7 +6,9 @@
 
 @php
     $savedColor = $savedColor ?? '#123D91';
-    $savedLogo  = $savedLogo ?? asset('images/logo-sip.png');
+    $savedLogo  = $savedLogo ?? '';
+    $organizationName = $organizationName ?? '';
+    $organizationInitials = $organizationInitials ?? getInitials($organizationName);
     $activeTab  = $activeTab ?? 'branding';
     $daftarLokasi = $daftarLokasi ?? [];
     $daftarRole = $daftarRole ?? [];
@@ -176,9 +178,15 @@
                 <div class="flex items-start gap-6">
                     <div class="relative flex-shrink-0">
                         <div class="h-24 w-24 overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
-                            <img :src="logoPreviewUrl" alt="Logo preview"
-                                 class="h-20 w-20 object-contain"
-                                 onerror="this.onerror=null;this.src='https://via.placeholder.com/80/E2E8F0/94A3B8?text=LOGO'">
+                            <img x-show="logoPreviewUrl && !logoImageFailed" :src="logoPreviewUrl" alt="Logo {{ $organizationName }}"
+                                 class="h-20 w-20 object-contain" x-on:error="logoImageFailed = true">
+                            <span x-show="!logoPreviewUrl || logoImageFailed" class="h-20 w-20 rounded-xl bg-primary text-white flex items-center justify-center text-xl font-bold">
+                                @if($organizationInitials)
+                                    {{ $organizationInitials }}
+                                @else
+                                    <i class="fa-solid fa-building" aria-hidden="true"></i>
+                                @endif
+                            </span>
                         </div>
                         <div x-show="logoChanged"
                              class="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 shadow">
@@ -321,7 +329,11 @@
                 {{-- Header Mockup --}}
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2.5">
-                        <img :src="logoPreviewUrl" alt="Logo" class="h-7 w-7 object-contain rounded-lg">
+                        <img x-show="logoPreviewUrl && !logoImageFailed" :src="logoPreviewUrl" alt="Logo {{ $organizationName }}" class="h-7 w-7 object-contain rounded-lg" x-on:error="logoImageFailed = true">
+                        <span x-show="!logoPreviewUrl || logoImageFailed" class="h-7 w-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white" :style="`background-color: ${selectedHex}`">
+                            {{ $organizationInitials ?: '' }}
+                            @if(!$organizationInitials)<i class="fa-solid fa-building" aria-hidden="true"></i>@endif
+                        </span>
                         <div class="h-3 w-16 rounded bg-slate-800"></div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -383,7 +395,11 @@
 
                 <div class="flex flex-col items-center justify-center py-4 px-6 bg-slate-50 rounded-2xl">
                     <div class="w-full max-w-[200px] bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 text-center">
-                        <img :src="logoPreviewUrl" alt="Logo" class="h-8 w-8 object-contain mx-auto rounded-lg">
+                        <img x-show="logoPreviewUrl && !logoImageFailed" :src="logoPreviewUrl" alt="Logo {{ $organizationName }}" class="h-8 w-8 object-contain mx-auto rounded-lg" x-on:error="logoImageFailed = true">
+                        <span x-show="!logoPreviewUrl || logoImageFailed" class="h-8 w-8 rounded-lg mx-auto flex items-center justify-center text-[10px] font-bold text-white" :style="`background-color: ${selectedHex}`">
+                            {{ $organizationInitials ?: '' }}
+                            @if(!$organizationInitials)<i class="fa-solid fa-building" aria-hidden="true"></i>@endif
+                        </span>
                         <div class="h-2.5 w-16 rounded bg-slate-800 mx-auto"></div>
                         <div class="space-y-1.5">
                             <div class="h-4 w-full rounded-lg bg-slate-100 border border-slate-200"></div>
@@ -537,7 +553,7 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap flex-shrink-0">
                 <span class="text-xs font-bold text-slate-600 bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200">
-                    Total: {{ count($daftarRole) }} Role Master
+                    Total: {{ count($daftarRole) + 1 }} Role Master
                 </span>
                 <span class="text-xs font-bold text-primary bg-blue-50 px-3.5 py-1.5 rounded-xl border border-blue-100">
                     {{ $daftarPrivilege->flatten()->count() }} Fitur Privilege
@@ -549,6 +565,25 @@
         <div>
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Pilih Role Pengguna :</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="relative flex flex-col justify-between p-5 rounded-2xl border border-slate-200 bg-slate-50 text-left overflow-hidden min-w-0 opacity-80"
+                     aria-disabled="true" title="Anggota tidak memiliki akses Web Admin">
+                    <div class="min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="h-10 w-10 rounded-xl flex items-center justify-center text-base bg-slate-200 text-slate-600 flex-shrink-0">
+                                <i class="fa-solid fa-users" aria-hidden="true"></i>
+                            </span>
+                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white text-slate-600 border border-slate-200">
+                                {{ $jumlahAnggota ?? 0 }} Akun
+                            </span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900">Anggota</h3>
+                        <p class="text-xs text-slate-500 mt-1">Untuk login aplikasi mobile dan presensi. Tidak memiliki akses Web Admin.</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500">Akses Web Admin: Tidak ada</span>
+                        <span class="text-xs font-bold text-slate-500">Nonaktif</span>
+                    </div>
+                </div>
                 @foreach($daftarRole as $roleItem)
                 @php
                     $isSuper = strcasecmp($roleItem->nama_role, 'Super Admin') === 0;
@@ -1293,6 +1328,7 @@ document.addEventListener('alpine:init', () => {
         savedLogo:      initialLogo,
         selectedHex:    initialColor,
         logoPreviewUrl: initialLogo,
+        logoImageFailed: false,
         logoFileName:   '',
         logoFile:       null,
         logoErrorMessage: '',
@@ -1445,6 +1481,7 @@ document.addEventListener('alpine:init', () => {
             this.logoFile       = file;
             this.logoFileName   = file.name;
             this.logoPreviewUrl = URL.createObjectURL(file);
+            this.logoImageFailed = false;
         },
 
         onSubmit() {

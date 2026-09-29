@@ -638,7 +638,7 @@
                     no_handphone: '{{ old('no_handphone', '') }}',
                     divisi_id: '{{ old('divisi_id', '') }}',
                     jabatan_id: '{{ old('jabatan_id', '') }}',
-                    role: '{{ old('role', '') }}',
+                    role: '{{ old('role', 'Anggota') }}',
                     status: '{{ old('status', 'Aktif') }}',
                     nfc_id: '{{ old('nfc_id', '') }}',
                     username: '{{ old('username', '') }}',
@@ -702,7 +702,7 @@
                         no_handphone: '',
                         divisi_id: '',
                         jabatan_id: '',
-                        role: '',
+                        role: 'Anggota',
                         status: 'Aktif',
                         nfc_id: '',
                         username: '',
@@ -727,7 +727,7 @@
                     this.isEdit = true;
                     this.formAction = `/admin/employee-management/${employee.pegawai_id}`;
 
-                    let rawRole = employee.role || 'Pegawai';
+                    let rawRole = employee.role || 'Anggota';
                     let mappedRole = rawRole;
                     if (rawRole.toLowerCase() === 'admin') {
                         mappedRole = 'Admin';

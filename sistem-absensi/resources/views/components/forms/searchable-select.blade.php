@@ -68,7 +68,7 @@
     @endif
     
     <div>
-        <input type="hidden" :name="name" x-model="selected">
+        <input type="hidden" name="{{ $name }}" :name="name" x-model="selected">
         
         <button type="button" x-ref="button" @click="open = !open" @keydown.escape.prevent="open = false"
             {{ $attributes->merge(['class' => 'flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition hover:bg-slate-50']) }}>

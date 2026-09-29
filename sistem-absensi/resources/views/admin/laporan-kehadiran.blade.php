@@ -548,6 +548,13 @@
 
                     const form = this.$refs.exportForm;
                     const formData = new FormData(form);
+                    const startDate = formData.get('start_date');
+                    const endDate = formData.get('end_date');
+                    if (startDate && endDate && startDate > endDate) {
+                        this.exportErrorMessage = 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.';
+                        this.exportIsLoading = false;
+                        return;
+                    }
                     const params = new URLSearchParams(formData);
 
                     let exportUrl = '{{ route('admin.laporan-kehadiran.export.excel') }}';

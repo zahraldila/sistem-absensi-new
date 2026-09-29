@@ -102,6 +102,15 @@ class OrganizationSelectionController extends Controller
             $localRole->privileges()->syncWithoutDetaching($template->privileges->modelKeys());
         }
 
+        $memberRole = \App\Models\Role::firstOrCreate(
+            [
+                'nama_role' => 'Anggota',
+                'organization_id' => $organization->organization_id,
+            ],
+            ['deskripsi' => 'Akun anggota untuk aplikasi mobile dan presensi.']
+        );
+        $memberRole->privileges()->detach();
+
         $adminRole = \App\Models\Role::firstOrCreate(
             [
                 'nama_role' => 'Admin',

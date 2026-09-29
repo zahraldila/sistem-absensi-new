@@ -23,7 +23,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>PT SELADA INDONESIA PRODUKTIF</h1>
+        <h1>{{ strtoupper($organizationName ?? 'ORGANISASI') }}</h1>
         <h2>LAPORAN PERSETUJUAN PENGAJUAN</h2>
         <p>Diunduh pada {{ $generatedAt }}</p>
     </div>

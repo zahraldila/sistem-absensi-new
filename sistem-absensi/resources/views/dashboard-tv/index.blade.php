@@ -58,7 +58,16 @@
             <!-- Left: Logo & Company Name -->
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
-                    <img src="{{ $logoUrl }}" alt="Logo" class="w-full h-full object-contain">
+                    @if($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="Logo {{ $organizationName }}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                    @endif
+                    <span class="w-full h-full rounded-lg bg-primary text-white flex items-center justify-center text-xs font-bold {{ $logoUrl ? 'hidden' : '' }}">
+                        @if($organizationInitials)
+                            {{ $organizationInitials }}
+                        @else
+                            <i class="fa-solid fa-building" aria-hidden="true"></i>
+                        @endif
+                    </span>
                 </div>
                 <div>
                     <h1 class="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">

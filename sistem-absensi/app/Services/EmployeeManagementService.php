@@ -205,6 +205,13 @@ class EmployeeManagementService
     {
         $masterRoles = $this->repository->getMasterRoles();
 
+        if ($roleInput === null || (is_string($roleInput) && trim($roleInput) === '')) {
+            $memberRole = $masterRoles->first(fn ($role) => $role->isMemberRole());
+            if ($memberRole) {
+                return ['role_id' => $memberRole->role_id, 'nama_role' => $memberRole->nama_role];
+            }
+        }
+
         if (is_numeric($roleInput)) {
             $found = $masterRoles->firstWhere('role_id', (int) $roleInput);
             if ($found) {

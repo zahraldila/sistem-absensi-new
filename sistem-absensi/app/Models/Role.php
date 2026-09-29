@@ -52,6 +52,12 @@ class Role extends Model
             && is_null($this->organization_id);
     }
 
+    public function isMemberRole(): bool
+    {
+        return ! is_null($this->organization_id)
+            && strcasecmp(trim($this->nama_role), 'Anggota') === 0;
+    }
+
     public function hasAnyPrivilege(): bool
     {
         return $this->isGlobalSuperAdmin() || $this->privileges()->exists();

@@ -141,11 +141,11 @@ if (! function_exists('supabase_submission_url')) {
 }
 
 if (! function_exists('company_logo_url')) {
-    function company_logo_url(?string $path = null): string
+    function company_logo_url(?string $path = null): ?string
     {
         $path = $path ?? \App\Models\Setting::get('company_logo');
         if (! $path || trim($path) === '') {
-            return asset('images/logo-sip.png');
+            return null;
         }
 
         $path = trim($path);
@@ -163,7 +163,7 @@ if (! function_exists('company_logo_url')) {
         }
 
         $bucket = config('supabase.assets_bucket', 'company-assets');
-        return supabase_public_url($path, $bucket) ?? asset('images/logo-sip.png');
+        return supabase_public_url($path, $bucket);
     }
 }
 
