@@ -46,7 +46,7 @@
                                 </svg>
                             </template>
                             <template x-if="form.photoPreview">
-                                <img :src="form.photoPreview" alt="Preview foto" class="h-full w-full object-cover" />
+                                <img :src="form.photoPreview" alt="Preview foto" class="h-full w-full object-cover" x-on:error="form.photoPreview = ''" />
                             </template>
                         </div>
                         <div class="space-y-0.5">
