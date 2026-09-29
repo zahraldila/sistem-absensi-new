@@ -34,28 +34,41 @@
                 </template>
 
                 {{-- Photo Upload --}}
-                <div class="rounded-2xl border @error('foto_profile') border-red-300 bg-red-50/20 @else border-slate-200 bg-slate-50 @enderror p-3.5 sm:p-4">
-                    <label for="photoInput" class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 text-center border border-dashed border-slate-300 hover:bg-slate-50 transition">
-                        <div class="flex h-[80px] w-[80px] sm:h-[90px] sm:w-[90px] items-center justify-center rounded-2xl bg-slate-100 text-slate-400 overflow-hidden shadow-inner">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12a4 4 0 118 0M12 8v8" />
-                            </svg>
+                <div class="rounded-2xl border transition-all p-3.5 sm:p-4"
+                     :class="photoError ? 'border-red-300 bg-red-50/20 ring-1 ring-red-200' : (@error('foto_profile') 'border-red-300 bg-red-50/20' @else 'border-slate-200 bg-slate-50' @enderror)">
+                    <label for="photoInput" class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl bg-white p-3 text-center border border-dashed transition"
+                           :class="photoError ? 'border-red-300 hover:bg-red-50/20' : 'border-slate-300 hover:bg-slate-50'">
+                        <div class="flex h-[80px] w-[80px] sm:h-[90px] sm:w-[90px] items-center justify-center rounded-2xl text-slate-400 overflow-hidden shadow-inner"
+                             :class="photoError ? 'bg-red-50 text-red-400' : 'bg-slate-100 text-slate-400'">
+                            <template x-if="!form.photoPreview">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12a4 4 0 118 0M12 8v8" />
+                                </svg>
+                            </template>
+                            <template x-if="form.photoPreview">
+                                <img :src="form.photoPreview" alt="Preview foto" class="h-full w-full object-cover" />
+                            </template>
                         </div>
                         <div class="space-y-0.5">
-                            <p class="text-xs sm:text-sm font-semibold text-slate-900">Klik untuk Upload Foto</p>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-900" x-text="form.photoPreview ? 'Ganti Foto' : 'Klik untuk Upload Foto'">Klik untuk Upload Foto</p>
                             <p class="text-[11px] text-slate-500">PNG, JPG maksimal 2MB</p>
                         </div>
-                    </label>
-                    <input id="photoInput" type="file" name="foto_profile" accept="image/png,image/jpeg" @change="previewPhoto($event)" class="hidden">
 
-                    <template x-if="form.photoPreview">
-                        <div class="mt-3 flex justify-center">
-                            <img :src="form.photoPreview" alt="Preview foto baru" class="h-20 w-20 rounded-full object-cover shadow-md border-2 border-white" />
-                        </div>
-                    </template>
+                        {{-- Real-time validation warning message --}}
+                        <template x-if="photoError">
+                            <div class="mt-2 flex items-center justify-center gap-1.5 text-xs text-red-600 font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                <span x-text="photoError"></span>
+                            </div>
+                        </template>
+                    </label>
+                    <input id="photoInput" type="file" name="foto_profile" accept="image/png,image/jpeg,image/jpg" @change="previewPhoto($event)" class="hidden">
+
                     @error('foto_profile')
-                        <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-exclamation text-xs"></i>
+                        <p x-show="!photoError" class="mt-1.5 text-xs text-red-600 font-medium flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-exclamation text-xs text-red-500"></i>
                             <span>{{ $message }}</span>
                         </p>
                     @enderror

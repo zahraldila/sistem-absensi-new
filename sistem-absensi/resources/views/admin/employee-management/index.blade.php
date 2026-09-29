@@ -603,6 +603,7 @@
                 isSavingDivision: false,
                 isSavingRole: false,
                 isSavingEmployee: false,
+                photoError: '',
                 exportSuccessMessage: '',
                 exportErrorMessage: '',
                 detailModalOpen: false,
@@ -677,6 +678,7 @@
                     this.divisionSuccess = '';
                     this.roleError = '';
                     this.roleSuccess = '';
+                    this.photoError = '';
                 },
                 openCreate() {
                     this.isEdit = false;
@@ -892,13 +894,41 @@
                     this.detailModalOpen = false;
                 },
                 previewPhoto(event) {
+                    this.photoError = '';
                     const file = event.target.files[0];
                     if (!file) {
                         if (this.previewObjectUrl) {
                             URL.revokeObjectURL(this.previewObjectUrl);
                             this.previewObjectUrl = null;
                         }
-                        this.form.photoPreview = '';
+                        this.form.photoPreview = this.isEdit ? (this.form.foto_profile_existing || '') : '';
+                        return;
+                    }
+
+                    // Validasi tipe file
+                    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                    const isValidType = validTypes.includes(file.type) || file.name.match(/\.(jpg|jpeg|png)$/i);
+                    if (!isValidType) {
+                        this.photoError = 'Format file tidak didukung. Harap pilih file JPG, JPEG, atau PNG.';
+                        event.target.value = '';
+                        if (this.previewObjectUrl) {
+                            URL.revokeObjectURL(this.previewObjectUrl);
+                            this.previewObjectUrl = null;
+                        }
+                        this.form.photoPreview = this.isEdit ? (this.form.foto_profile_existing || '') : '';
+                        return;
+                    }
+
+                    // Validasi ukuran file (2MB = 2 * 1024 * 1024 bytes)
+                    if (file.size > 2 * 1024 * 1024) {
+                        const fileSizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                        this.photoError = `Ukuran foto (${fileSizeMb} MB) melebihi batas maksimal 2MB. Silakan pilih foto lain.`;
+                        event.target.value = '';
+                        if (this.previewObjectUrl) {
+                            URL.revokeObjectURL(this.previewObjectUrl);
+                            this.previewObjectUrl = null;
+                        }
+                        this.form.photoPreview = this.isEdit ? (this.form.foto_profile_existing || '') : '';
                         return;
                     }
 
@@ -925,6 +955,7 @@
                     this.newJabatanName = '';
                     this.roleError = '';
                     this.roleSuccess = '';
+                    this.photoError = '';
                 },
                 closeRoleModal() {
                     this.roleModalOpen = false;
@@ -1045,6 +1076,7 @@
                 async saveRole() {
                     this.roleError = '';
                     this.roleSuccess = '';
+                    this.photoError = '';
                     const namaJabatan = (this.newJabatanName || '').trim();
 
                     if (!namaJabatan) {
