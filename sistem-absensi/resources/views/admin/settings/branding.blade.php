@@ -904,7 +904,7 @@
              class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
              x-cloak
              style="display: none;">
-            <div @click.away="showLokasiModal = false"
+            <div @click.away="showLokasiModal = false; lokasiValidationError = ''; hasServerLokasiErrors = false;"
                  class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-7 relative border border-slate-100 my-auto">
                 
                 <div class="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -914,59 +914,156 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-slate-900" x-text="isEdit ? 'Edit Kantor Cabang' : 'Tambah Kantor Cabang Baru'"></h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Konfigurasi koordinat GPS dan jaringan Wi-Fi</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Konfigurasi koordinat GPS dan radius presensi kehadiran</p>
                         </div>
                     </div>
-                    <button @click="showLokasiModal = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-50">
+                    <button @click="showLokasiModal = false; lokasiValidationError = ''; hasServerLokasiErrors = false;" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-50 transition">
                         <i class="fa-solid fa-xmark text-lg"></i>
                     </button>
                 </div>
 
-                <form action="{{ route('admin.settings.lokasi.simpan') }}" method="POST" class="mt-5 space-y-4">
+                <form action="{{ route('admin.settings.lokasi.simpan') }}" method="POST" novalidate
+                      @submit="
+                        lokasiValidationError = '';
+                        if (!formLokasi.nama_kantor || !formLokasi.nama_kantor.trim()) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Nama kantor cabang wajib diisi.';
+                            return false;
+                        }
+                        if (formLokasi.nama_kantor.trim().length > 100) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Nama kantor cabang maksimal 100 karakter.';
+                            return false;
+                        }
+                        if (formLokasi.latitude === '' || formLokasi.latitude === null || isNaN(formLokasi.latitude)) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Latitude koordinat wajib diisi dengan format angka desimal.';
+                            return false;
+                        }
+                        let lat = parseFloat(formLokasi.latitude);
+                        if (lat < -90 || lat > 90) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Latitude harus berada dalam rentang -90 sampai 90 derajat.';
+                            return false;
+                        }
+                        if (formLokasi.longitude === '' || formLokasi.longitude === null || isNaN(formLokasi.longitude)) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Longitude koordinat wajib diisi dengan format angka desimal.';
+                            return false;
+                        }
+                        let lng = parseFloat(formLokasi.longitude);
+                        if (lng < -180 || lng > 180) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Longitude harus berada dalam rentang -180 sampai 180 derajat.';
+                            return false;
+                        }
+                        if (formLokasi.radius_meter === '' || formLokasi.radius_meter === null || isNaN(formLokasi.radius_meter) || parseInt(formLokasi.radius_meter) < 1) {
+                            $event.preventDefault();
+                            lokasiValidationError = 'Radius presensi wajib diisi minimal 1 meter.';
+                            return false;
+                        }
+                        if (isSavingLokasi) {
+                            $event.preventDefault();
+                            return false;
+                        }
+                        isSavingLokasi = true;
+                      "
+                      class="mt-5 space-y-4">
                     @csrf
                     <input type="hidden" name="lokasi_id" x-model="formLokasi.lokasi_id">
 
+                    {{-- Client-side & Backend Validation Error Box inside Modal --}}
+                    <div x-show="lokasiValidationError" x-cloak class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2.5">
+                        <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm flex-shrink-0"></i>
+                        <span x-text="lokasiValidationError"></span>
+                    </div>
+
+                    @if($errors->lokasi_kantor->any())
+                    <div x-show="hasServerLokasiErrors" x-cloak class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2.5">
+                        <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm flex-shrink-0"></i>
+                        <span>{{ $errors->lokasi_kantor->first() }}</span>
+                    </div>
+                    @endif
+
                     {{-- Nama Kantor --}}
                     <div>
-                        <label class="text-xs font-bold text-slate-700">Nama Kantor Cabang <span class="text-rose-500">*</span></label>
-                        <input type="text" name="nama_kantor" x-model="formLokasi.nama_kantor" required
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-slate-700">Nama Kantor Cabang <span class="text-rose-500">*</span></label>
+                            <span class="text-[11px] font-semibold text-slate-400" x-text="(formLokasi.nama_kantor ? formLokasi.nama_kantor.length : 0) + '/100'"></span>
+                        </div>
+                        <input type="text" name="nama_kantor" x-model="formLokasi.nama_kantor" maxlength="100"
+                               @input="lokasiValidationError = ''; hasServerLokasiErrors = false;"
                                placeholder="Contoh: Kantor Cabang Jakarta"
-                               class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
+                               class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                               :class="(lokasiValidationError || hasServerLokasiErrors) ? 'border-rose-300 ring-1 ring-rose-300' : ''">
+                        @error('nama_kantor', 'lokasi_kantor')
+                        <p x-show="hasServerLokasiErrors" x-cloak class="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-circle-exclamation text-[11px]"></i>
+                            <span>{{ $message }}</span>
+                        </p>
+                        @enderror
                     </div>
 
                     {{-- Latitude & Longitude --}}
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-xs font-bold text-slate-700">Latitude <span class="text-rose-500">*</span></label>
-                            <input type="text" name="latitude" x-model="formLokasi.latitude" required
+                            <input type="text" name="latitude" x-model="formLokasi.latitude"
+                                   @input="lokasiValidationError = ''; hasServerLokasiErrors = false;"
                                    placeholder="Contoh: -6.910194"
-                                   class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
+                                   class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                   :class="(lokasiValidationError || hasServerLokasiErrors) ? 'border-rose-300 ring-1 ring-rose-300' : ''">
+                            @error('latitude', 'lokasi_kantor')
+                            <p x-show="hasServerLokasiErrors" x-cloak class="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                                <i class="fa-solid fa-circle-exclamation text-[11px]"></i>
+                                <span>{{ $message }}</span>
+                            </p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-700">Longitude <span class="text-rose-500">*</span></label>
-                            <input type="text" name="longitude" x-model="formLokasi.longitude" required
+                            <input type="text" name="longitude" x-model="formLokasi.longitude"
+                                   @input="lokasiValidationError = ''; hasServerLokasiErrors = false;"
                                    placeholder="Contoh: 107.650728"
-                                   class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
+                                   class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                   :class="(lokasiValidationError || hasServerLokasiErrors) ? 'border-rose-300 ring-1 ring-rose-300' : ''">
+                            @error('longitude', 'lokasi_kantor')
+                            <p x-show="hasServerLokasiErrors" x-cloak class="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                                <i class="fa-solid fa-circle-exclamation text-[11px]"></i>
+                                <span>{{ $message }}</span>
+                            </p>
+                            @enderror
                         </div>
                     </div>
 
                     {{-- Radius Meter --}}
                     <div>
                         <label class="text-xs font-bold text-slate-700">Radius Presensi (Meter) <span class="text-rose-500">*</span></label>
-                        <input type="number" name="radius_meter" x-model="formLokasi.radius_meter" required min="1"
+                        <input type="number" name="radius_meter" x-model="formLokasi.radius_meter" min="1" max="50000"
+                               @input="lokasiValidationError = ''; hasServerLokasiErrors = false;"
                                placeholder="Contoh: 100"
-                               class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
+                               class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                               :class="(lokasiValidationError || hasServerLokasiErrors) ? 'border-rose-300 ring-1 ring-rose-300' : ''">
+                        @error('radius_meter', 'lokasi_kantor')
+                        <p x-show="hasServerLokasiErrors" x-cloak class="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-circle-exclamation text-[11px]"></i>
+                            <span>{{ $message }}</span>
+                        </p>
+                        @enderror
                     </div>
-
-
 
                     {{-- Submit Buttons --}}
                     <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                        <button type="button" @click="showLokasiModal = false" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 transition">
+                        <button type="button" :disabled="isSavingLokasi" @click="showLokasiModal = false; lokasiValidationError = ''; hasServerLokasiErrors = false;" :class="isSavingLokasi ? 'opacity-50 cursor-not-allowed' : ''" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 transition">
                             Batal
                         </button>
-                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-bold shadow-md hover:bg-primary/90 transition">
-                            Simpan Kantor Cabang
+                        <button type="submit" :disabled="isSavingLokasi" :class="isSavingLokasi ? 'opacity-75 cursor-not-allowed' : 'hover:bg-primary/90'" class="px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-bold shadow-md transition flex items-center gap-1.5">
+                            <svg x-show="isSavingLokasi" x-cloak class="h-3.5 w-3.5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <i x-show="!isSavingLokasi" class="fa-solid fa-floppy-disk text-xs"></i>
+                            <span x-text="isSavingLokasi ? 'Menyimpan...' : 'Simpan Kantor Cabang'">Simpan Kantor Cabang</span>
                         </button>
                     </div>
                 </form>
@@ -1209,15 +1306,17 @@ document.addEventListener('alpine:init', () => {
         isDraggingHue: false,
 
         // Location modal states
-        showLokasiModal: false,
+        showLokasiModal: {{ $errors->lokasi_kantor->any() ? 'true' : 'false' }},
+        hasServerLokasiErrors: {{ $errors->lokasi_kantor->any() ? 'true' : 'false' }},
+        lokasiValidationError: '',
+        isSavingLokasi: false,
         isEdit: false,
         formLokasi: {
-            lokasi_id: '',
-            nama_kantor: '',
-            latitude: '',
-            longitude: '',
-            radius_meter: 100,
-            wifi_ssids: '',
+            lokasi_id: '{{ old('lokasi_id') }}',
+            nama_kantor: '{{ old('nama_kantor') }}',
+            latitude: '{{ old('latitude') }}',
+            longitude: '{{ old('longitude') }}',
+            radius_meter: {{ old('radius_meter', 100) }},
         },
         showDeleteLokasiModal: false,
         deleteLokasiData: { id: '', nama: '' },
@@ -1431,6 +1530,9 @@ document.addEventListener('alpine:init', () => {
 
         openModalTambah() {
             this.isEdit = false;
+            this.isSavingLokasi = false;
+            this.lokasiValidationError = '';
+            this.hasServerLokasiErrors = false;
             this.formLokasi = {
                 lokasi_id: '',
                 nama_kantor: '',
@@ -1443,6 +1545,9 @@ document.addEventListener('alpine:init', () => {
 
         openModalEdit(lokasi) {
             this.isEdit = true;
+            this.isSavingLokasi = false;
+            this.lokasiValidationError = '';
+            this.hasServerLokasiErrors = false;
             this.formLokasi = {
                 lokasi_id: lokasi.lokasi_id,
                 nama_kantor: lokasi.nama_kantor,
