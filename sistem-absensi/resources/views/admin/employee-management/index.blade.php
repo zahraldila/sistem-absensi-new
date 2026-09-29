@@ -12,22 +12,22 @@
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
         <div>
-            <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight">Manajemen Akun Karyawan</h1>
-            <p class="mt-1 text-xs sm:text-sm text-gray-600">Kelola akun dan data pegawai yang terhubung dengan sistem absensi.</p>
+            <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight">Manajemen Akun Anggota</h1>
+            <p class="mt-1 text-xs sm:text-sm text-gray-600">Kelola akun dan data anggota yang terhubung dengan sistem absensi.</p>
         </div>
         @if($canTambahPegawai)
             <button type="button" @click.prevent="openCreate()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs sm:text-sm font-semibold text-white transition hover:bg-primary-hover flex-shrink-0 shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Tambah Pegawai</span>
+                <span>Tambah Anggota</span>
             </button>
         @else
-            <button type="button" disabled title="Anda tidak memiliki hak akses untuk menambah pegawai" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-200 px-4 py-3 text-xs sm:text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none flex-shrink-0 shadow-none">
+            <button type="button" disabled title="Anda tidak memiliki hak akses untuk menambah anggota" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-200 px-4 py-3 text-xs sm:text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none flex-shrink-0 shadow-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Tambah Pegawai</span>
+                <span>Tambah Anggota</span>
             </button>
         @endif
     </div>
@@ -74,7 +74,7 @@
         <form method="GET" action="{{ route('admin.employee-management.index') }}">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div class="flex-1">
-                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari Karyawan</label>
+                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari Anggota</label>
                     <div class="relative mt-1">
                         <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-gray-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,7 +97,7 @@
                             <span>Export</span>
                         </button>
                     @else
-                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengekspor data pegawai" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-100 px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-gray-400 opacity-60 cursor-not-allowed select-none whitespace-nowrap">
+                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengekspor data anggota" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-100 px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-gray-400 opacity-60 cursor-not-allowed select-none whitespace-nowrap">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
@@ -200,14 +200,14 @@
                                     'foto_profile' => $employee->foto_profile ? supabase_public_url($employee->foto_profile) : '',
                                     'username' => $employee->akun->username ?? '',
                                     'role_id' => $employee->akun->role_id ?? '',
-                                    'role' => $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Pegawai'
+                                    'role' => $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Anggota'
                                 ], JSON_HEX_APOS | JSON_HEX_QUOT) }}"
                                 class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2 text-xs font-semibold text-primary transition hover:bg-blue-100">
                             <i class="fa-solid fa-pen-to-square text-primary text-xs"></i>
                             <span>Edit</span>
                         </button>
                     @else
-                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data pegawai"
+                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data anggota"
                                 class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 py-2 text-xs font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none">
                             <i class="fa-solid fa-pen-to-square text-slate-400 text-xs"></i>
                             <span>Edit</span>
@@ -217,7 +217,7 @@
             </div>
         @empty
             <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
-                Belum ada data pegawai.
+                Belum ada data anggota.
             </div>
         @endforelse
     </div>
@@ -291,7 +291,7 @@
                                             'username' => $employee->akun->username ?? '-',
                                         ], JSON_HEX_APOS | JSON_HEX_QUOT) }}"
                                         class="mr-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 shadow-sm"
-                                        aria-label="Lihat detail pegawai">
+                                        aria-label="Lihat detail anggota">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
                                         <circle cx="12" cy="12" r="3" />
@@ -313,19 +313,19 @@
                                                 'foto_profile' => $employee->foto_profile ? supabase_public_url($employee->foto_profile) : '',
                                                 'username' => $employee->akun->username ?? '',
                                                 'role_id' => $employee->akun->role_id ?? '',
-                                                'role' => $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Pegawai'
+                                                'role' => $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Anggota'
                                             ], JSON_HEX_APOS | JSON_HEX_QUOT) }}"
                                             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-primary transition hover:bg-blue-50 shadow-sm"
-                                            aria-label="Edit pegawai">
+                                            aria-label="Edit anggota">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z" />
                                         </svg>
                                     </button>
                                 @else
-                                    <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data pegawai"
+                                    <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data anggota"
                                             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-300 opacity-60 cursor-not-allowed select-none shadow-none"
-                                            aria-label="Edit pegawai dinonaktifkan">
+                                            aria-label="Edit anggota dinonaktifkan">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -336,7 +336,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada data pegawai.</td>
+                            <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada data anggota.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -430,14 +430,14 @@
         </div>
     </div>
 
-        {{-- DETAIL MODAL PEGAWAI --}}
+        {{-- DETAIL MODAL ANGGOTA --}}
     <div x-show="detailModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" @click.self="closeDetail()">
         <div class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl sm:rounded-[28px] bg-white shadow-2xl ring-1 ring-slate-200" @click.stop>
             {{-- Header --}}
             <div class="border-b border-slate-200 px-5 sm:px-6 py-3.5 flex items-center justify-between">
                 <div>
-                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Detail Pegawai</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">Informasi lengkap data pegawai dan akun.</p>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Detail Anggota</h2>
+                    <p class="mt-0.5 text-xs text-slate-500">Informasi lengkap data anggota dan akun.</p>
                 </div>
                 <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                     @click="closeDetail()" aria-label="Tutup modal">
@@ -452,7 +452,7 @@
                 {{-- Profile Header: Foto di KIRI, Nama & NIP di KANAN --}}
                 <div class="flex items-center gap-3.5 sm:gap-4 bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-100">
                     <template x-if="detailData.foto_profile">
-                        <img :src="detailData.foto_profile" alt="Foto Pegawai" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm border-2 border-white flex-shrink-0" x-on:error="detailData.foto_profile = ''" />
+                        <img :src="detailData.foto_profile" alt="Foto Anggota" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm border-2 border-white flex-shrink-0" x-on:error="detailData.foto_profile = ''" />
                     </template>
                     <template x-if="!detailData.foto_profile">
                         <div class="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-slate-200 text-lg sm:text-xl font-bold text-slate-700 flex-shrink-0 border-2 border-white shadow-sm">
@@ -732,7 +732,7 @@
                     if (rawRole.toLowerCase() === 'admin') {
                         mappedRole = 'Admin';
                     } else if (rawRole.toLowerCase() === 'pegawai' || rawRole.toLowerCase() === 'karyawan') {
-                        mappedRole = 'Pegawai';
+                        mappedRole = 'Anggota';
                     } else if (rawRole.toLowerCase() === 'hr' || rawRole.toLowerCase() === 'hrd' || rawRole.toLowerCase() === 'hr / hrd') {
                         mappedRole = 'HR / HRD';
                     } else if (rawRole.toLowerCase() === 'direktur') {
@@ -823,8 +823,8 @@
                         const emailVal      = emailInput    ? emailInput.value.trim()    : '';
                         const usernameVal   = usernameInput ? usernameInput.value.trim() : '';
                         if (!emailVal && !usernameVal) {
-                            showError(emailInput,    'Email atau Username wajib diisi (minimal salah satu) agar pegawai dapat login.');
-                            showError(usernameInput, 'Email atau Username wajib diisi (minimal salah satu) agar pegawai dapat login.');
+                            showError(emailInput,    'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.');
+                            showError(usernameInput, 'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.');
                         }
                     }
 

@@ -8,7 +8,7 @@
             <div class="flex items-center justify-between border-b border-slate-200 px-5 sm:px-8 py-5 sm:py-6">
                 <div>
                     <h2 class="text-base sm:text-lg font-bold text-slate-900">Export Data Akun</h2>
-                    <p class="mt-1 text-xs sm:text-sm text-slate-500">Pilih format dan filter untuk unduh data akun karyawan.</p>
+                    <p class="mt-1 text-xs sm:text-sm text-slate-500">Pilih format dan filter untuk unduh data akun anggota.</p>
                 </div>
                 <button type="button" class="flex items-center justify-center rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" @click="closeExport()" aria-label="Tutup modal">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -26,7 +26,7 @@
                                 <input type="radio" name="format" value="xlsx" class="mt-1 h-4 w-4 text-primary focus:ring-primary" checked />
                                 <div class="flex-1">
                                     <p class="text-sm font-medium text-slate-900">Excel (.xlsx)</p>
-                                    <p class="text-xs text-slate-500">Unduh file Excel dengan data akun karyawan.</p>
+                                    <p class="text-xs text-slate-500">Unduh file Excel dengan data akun anggota.</p>
                                 </div>
                             </label>
 

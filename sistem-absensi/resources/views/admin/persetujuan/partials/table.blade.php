@@ -87,7 +87,7 @@
         <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
             <thead class="bg-gray-50/80">
                 <tr>
-                    <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Karyawan</th>
+                    <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Anggota</th>
                     <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Jenis Pengajuan</th>
                     <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Tanggal Pengajuan</th>
                     <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>

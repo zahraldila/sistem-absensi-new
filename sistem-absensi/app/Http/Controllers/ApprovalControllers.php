@@ -452,7 +452,7 @@ class ApprovalControllers extends Controller
             ? Pegawai::find($pengajuan->pegawai_id)
             : null;
         
-        $namaPegawai = $pegawai?->nama_pegawai ?? 'Pegawai';
+        $namaPegawai = $pegawai?->nama_pegawai ?? 'Anggota';
 
         DB::beginTransaction();
         try {
@@ -571,7 +571,7 @@ class ApprovalControllers extends Controller
             ? Pegawai::find($pengajuan->pegawai_id)
             : null;
         
-        $namaPegawai = $pegawai?->nama_pegawai ?? 'Pegawai';
+        $namaPegawai = $pegawai?->nama_pegawai ?? 'Anggota';
 
         DB::beginTransaction();
         try {
@@ -676,7 +676,7 @@ class ApprovalControllers extends Controller
             'jenis'      => 'required|string|max:50',
             'keterangan' => 'nullable|string|max:2000',
         ], [
-            'pegawai_id.required' => 'Pegawai wajib dipilih.',
+            'pegawai_id.required' => 'Anggota wajib dipilih.',
             'tanggal.required'    => 'Tanggal wajib diisi.',
             'jenis.required'      => 'Jenis catatan wajib dipilih.',
         ]);
@@ -694,7 +694,7 @@ class ApprovalControllers extends Controller
 
         if (! $pegawai) {
             return back()
-                ->withErrors(['pegawai_id' => 'Pegawai tidak ditemukan atau bukan milik organisasi Anda.'])
+                ->withErrors(['pegawai_id' => 'Anggota tidak ditemukan atau bukan milik organisasi Anda.'])
                 ->withInput();
         }
 

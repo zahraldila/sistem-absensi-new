@@ -31,7 +31,7 @@
             <tr>
                 <td><strong>Jabatan</strong></td>
                 <td>{{ $filters['role'] }}</td>
-                <td><strong>Karyawan</strong></td>
+                <td><strong>Anggota</strong></td>
                 <td>{{ $filters['pegawai'] }}</td>
             </tr>
         </tbody>
@@ -41,7 +41,7 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                <th style="width: 18%;">Nama Pegawai</th>
+                <th style="width: 18%;">Nama Anggota</th>
                 <th style="width: 12%;">NIP</th>
                 <th style="width: 12%;">Employee ID</th>
                 <th style="width: 18%;">Divisi</th>
@@ -55,7 +55,7 @@
         @foreach($rows as $row)
             <tr>
                 <td>{{ $row['No'] }}</td>
-                <td>{{ $row['Nama Pegawai'] }}</td>
+                <td>{{ $row['Nama Anggota'] }}</td>
                 <td>{{ $row['NIP'] }}</td>
                 <td>{{ $row['Employee ID'] }}</td>
                 <td>{{ $row['Divisi'] ?? $row['Department'] }}</td>

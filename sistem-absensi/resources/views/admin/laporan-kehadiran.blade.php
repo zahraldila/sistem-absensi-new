@@ -8,7 +8,7 @@
     {{-- Header --}}
     <div class="mb-5 sm:mb-6">
         <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">Laporan Kehadiran</h1>
-        <p class="mt-1 text-xs sm:text-sm text-gray-600">Ringkasan Laporan Kehadiran Karyawan secara menyeluruh.</p>
+        <p class="mt-1 text-xs sm:text-sm text-gray-600">Ringkasan laporan kehadiran anggota secara menyeluruh.</p>
     </div>
 
     {{-- Export Success Notification (dynamic) --}}
@@ -31,7 +31,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 {{-- Search Input --}}
                 <div class="flex-1 min-w-0">
-                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari Karyawan</label>
+                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari Anggota</label>
                     <div class="relative mt-1">
                         <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-gray-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -229,7 +229,7 @@
             <table class="w-full min-w-[950px] divide-y divide-gray-200 text-left text-sm">
                 <thead class="bg-gray-50/80">
                     <tr>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Karyawan</th>
+                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Anggota</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Divisi</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Tanggal</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Masuk</th>
@@ -464,7 +464,7 @@
                                 return ['value' => $p->pegawai_id, 'text' => $p->nama_pegawai];
                             })->toArray();
                         @endphp
-                        <x-forms.searchable-select name="pegawai_id" label="Pegawai" :options="$pegawaiOptions" 
+                        <x-forms.searchable-select name="pegawai_id" label="Anggota" :options="$pegawaiOptions"
                             class="w-full rounded-3xl border border-slate-200 bg-white pl-4 pr-4 py-3 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200" 
                             selected="{{ request('pegawai_id', '') }}" />
                     </div>

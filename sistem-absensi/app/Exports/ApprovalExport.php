@@ -82,7 +82,7 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             'No',
-            'Nama Pegawai',
+            'Nama Anggota',
             'Divisi',
             'Jenis Pengajuan',
             'Tanggal Pengajuan',

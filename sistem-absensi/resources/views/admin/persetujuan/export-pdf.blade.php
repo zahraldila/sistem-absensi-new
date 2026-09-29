@@ -42,7 +42,7 @@
                 <td>: {{ $filters['tanggal_akhir'] }}</td>
             </tr>
             <tr>
-                <td><strong>Pegawai</strong></td>
+                <td><strong>Anggota</strong></td>
                 <td colspan="3">: {{ $filters['pegawai'] }}</td>
             </tr>
         </tbody>
@@ -52,7 +52,7 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                <th style="width: 20%;">Nama Pegawai</th>
+                <th style="width: 20%;">Nama Anggota</th>
                 <th style="width: 15%;">Divisi</th>
                 <th style="width: 14%;">Jenis Pengajuan</th>
                 <th style="width: 15%;">Tanggal Pengajuan</th>
