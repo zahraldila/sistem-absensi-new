@@ -17,19 +17,29 @@ class CompanyHeader extends StatelessWidget {
   });
 
   Widget _buildDefaultLogo() {
+    String initials = 'AP';
+    if (companyName.trim().isNotEmpty) {
+      final words = companyName.trim().split(RegExp(r'\s+'));
+      if (words.length >= 2) {
+        initials = '${words[0][0]}${words[1][0]}'.toUpperCase();
+      } else if (words.isNotEmpty && words[0].isNotEmpty) {
+        initials = words[0].substring(0, words[0].length >= 2 ? 2 : 1).toUpperCase();
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: primaryColor,
         borderRadius: BorderRadius.circular(12),
       ),
       alignment: Alignment.center,
-      child: const Text(
-        'SIP',
-        style: TextStyle(
+      child: Text(
+        initials,
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
           fontWeight: FontWeight.w900,
-          letterSpacing: 2,
+          letterSpacing: 1,
         ),
       ),
     );
