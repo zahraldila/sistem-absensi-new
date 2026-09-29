@@ -4,7 +4,8 @@
 <div class="block sm:hidden space-y-3.5 mb-6">
     @forelse($approvals as $approval)
         @php
-            $statusClass = match($approval->status_pengajuan) {
+            $displayStatus = in_array($approval->status_pengajuan, ['Pending', 'Menunggu'], true) ? 'Pending' : ($approval->status_pengajuan ?? '-');
+            $statusClass = match($displayStatus) {
                 'Pending' => 'bg-yellow-100 text-yellow-700',
                 'Disetujui' => 'bg-green-100 text-green-700',
                 'Ditolak' => 'bg-red-100 text-red-700',
@@ -30,7 +31,7 @@
                 </div>
                 <div class="flex-shrink-0">
                     <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">
-                        {{ $approval->status_pengajuan ?? '-' }}
+                        {{ $displayStatus }}
                     </span>
                 </div>
             </div>
@@ -59,7 +60,7 @@
                     'divisi_name' => $approval->pegawai->masterDivisi->nama_divisi ?? '-',
                     'jenis_pengajuan' => $approval->jenis_pengajuan ?? '-',
                     'tanggal_pengajuan' => $approval->tanggal_pengajuan ? \Carbon\Carbon::parse($approval->tanggal_pengajuan)->format('d F Y') : '-',
-                    'status_pengajuan' => $approval->status_pengajuan ?? '-',
+                    'status_pengajuan' => $displayStatus,
                     'keterangan' => $approval->keterangan ?? '-',
                     'lampiran_path' => $approval->lampiran ?? null,
                     'lampiran_url' => $approval->lampiran ? supabase_submission_url($approval->lampiran) : null,
@@ -96,7 +97,8 @@
             <tbody class="divide-y divide-gray-200 bg-white">
                 @forelse($approvals as $approval)
                     @php
-                        $statusClass = match($approval->status_pengajuan) {
+                        $displayStatus = in_array($approval->status_pengajuan, ['Pending', 'Menunggu'], true) ? 'Pending' : ($approval->status_pengajuan ?? '-');
+                        $statusClass = match($displayStatus) {
                             'Pending' => 'bg-yellow-100 text-yellow-700',
                             'Disetujui' => 'bg-green-100 text-green-700',
                             'Ditolak' => 'bg-red-100 text-red-700',
@@ -131,7 +133,7 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-sm">
-                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClass }}">{{ $approval->status_pengajuan ?? '-' }}</span>
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClass }}">{{ $displayStatus }}</span>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <div class="flex items-center justify-center gap-2">
@@ -142,7 +144,7 @@
                                     'divisi_name' => $approval->pegawai->masterDivisi->nama_divisi ?? '-',
                                     'jenis_pengajuan' => $approval->jenis_pengajuan ?? '-',
                                     'tanggal_pengajuan' => $approval->tanggal_pengajuan ? \Carbon\Carbon::parse($approval->tanggal_pengajuan)->format('d F Y') : '-',
-                                    'status_pengajuan' => $approval->status_pengajuan ?? '-',
+                                    'status_pengajuan' => $displayStatus,
                                     'keterangan' => $approval->keterangan ?? '-',
                                     'lampiran_path' => $approval->lampiran ?? null,
                                     'lampiran_url' => $approval->lampiran ? supabase_submission_url($approval->lampiran) : null,

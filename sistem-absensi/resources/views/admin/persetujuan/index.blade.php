@@ -58,33 +58,71 @@
         </div>
     @endif
 
-    {{-- ======================================== --}}
-    {{-- INLINE FEEDBACK BANNER --}}
-    {{-- ======================================== --}}
-    <div
-        x-show="showSuccessToast"
-        x-cloak
-        x-transition
-        class="relative rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs sm:text-sm text-green-700">
-        <div class="pr-6" x-text="toastMessage"></div>
-        <button type="button" @click="showSuccessToast = false" aria-label="Tutup notifikasi" class="absolute right-2 top-2 text-green-700 hover:text-green-900">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-    </div>
+    @if(session('error'))
+        <div
+            x-data="{ show: true }"
+            x-show="show"
+            x-init="setTimeout(() => show = false, 5000)"
+            x-transition
+            class="relative rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs sm:text-sm text-red-700">
+            <div class="pr-6">{{ session('error') }}</div>
+            <button type="button" @click="show = false" aria-label="Tutup notifikasi" class="absolute right-2 top-2 text-red-700 hover:text-red-900">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    @endif
 
-    <div
-        x-show="showErrorToast"
-        x-cloak
-        x-transition
-        class="relative rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs sm:text-sm text-red-700">
-        <div class="pr-6" x-text="errorMessage"></div>
-        <button type="button" @click="showErrorToast = false" aria-label="Tutup notifikasi" class="absolute right-2 top-2 text-red-700 hover:text-red-900">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
+    {{-- ======================================== --}}
+    {{-- GLOBAL FLOATING NOTIFICATION / TOAST --}}
+    {{-- ======================================== --}}
+    <div class="fixed top-5 right-5 z-[70] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-[calc(100vw-2.5rem)] pointer-events-none">
+        <div
+            x-show="showSuccessToast"
+            x-cloak
+            x-transition:enter="transition ease-out duration-300 transform"
+            x-transition:enter-start="opacity-0 translate-y-[-10px] sm:translate-x-4"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:translate-x-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="pointer-events-auto relative rounded-2xl border border-emerald-200 bg-white p-4 shadow-2xl text-xs sm:text-sm text-slate-800 flex items-start gap-3">
+            <div class="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="flex-1 pt-0.5 pr-2 font-medium text-slate-700" x-text="toastMessage"></div>
+            <button type="button" @click="showSuccessToast = false" aria-label="Tutup notifikasi" class="text-slate-400 hover:text-slate-600 p-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div
+            x-show="showErrorToast"
+            x-cloak
+            x-transition:enter="transition ease-out duration-300 transform"
+            x-transition:enter-start="opacity-0 translate-y-[-10px] sm:translate-x-4"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:translate-x-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="pointer-events-auto relative rounded-2xl border border-red-200 bg-white p-4 shadow-2xl text-xs sm:text-sm text-slate-800 flex items-start gap-3">
+            <div class="flex h-7 w-7 items-center justify-center rounded-xl bg-red-100 text-red-600 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="flex-1 pt-0.5 pr-2 font-medium text-slate-700" x-text="errorMessage"></div>
+            <button type="button" @click="showErrorToast = false" aria-label="Tutup notifikasi" class="text-slate-400 hover:text-slate-600 p-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
     </div>
 
     {{-- ======================================== --}}
@@ -179,7 +217,7 @@
                     type="button"
                     data-status="Pending"
                     class="approval-tab rounded-xl px-4 sm:px-5 py-2 text-xs sm:text-sm font-semibold text-slate-600 transition whitespace-nowrap">
-                    Menunggu
+                    Pending
                 </button>
 
                 <button
@@ -302,7 +340,7 @@
                 </div>
             </div>
             <div class="border-t border-slate-200 bg-white px-5 sm:px-6 py-4 flex items-center justify-end gap-2.5">
-                <template x-if="detailData.status_pengajuan === 'Pending'">
+                <template x-if="detailData.status_pengajuan === 'Pending' || detailData.status_pengajuan === 'Menunggu'">
                     <div class="grid grid-cols-2 gap-2.5 w-full sm:w-auto sm:flex sm:items-center">
                         @if($canApprove)
                             <button type="button"
@@ -447,7 +485,7 @@
                 <div class="flex items-start justify-between border-b border-slate-200 px-5 sm:px-6 py-4">
                     <div>
                         <h2 class="text-lg sm:text-xl font-bold text-slate-900">Tambah Catatan Absensi</h2>
-                        <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Catat kehadiran (WFO/WFH/WFC) atau pengajuan (Sakit/Izin/Cuti) atas nama pegawai.</p>
+                        <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Catat pengajuan absensi (WFH, WFC, Sakit, Izin, Cuti, Dinas, dll) atas nama pegawai.</p>
                     </div>
                     <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 shrink-0 ml-4"
                         @click="closeCreateModal()" aria-label="Tutup modal">
@@ -525,7 +563,7 @@
                                 :options="$createJenisOptions" 
                                 selected="{{ old('jenis') }}" 
                             />
-                            <p class="mt-1.5 text-[11px] text-slate-500">WFO/WFH/WFC akan masuk sebagai Kehadiran. Sisanya sebagai Pengajuan Disetujui.</p>
+                            <p class="mt-1.5 text-[11px] text-slate-500">Catatan absensi akan tersimpan sebagai pengajuan yang disetujui.</p>
                         </div>
 
                         {{-- Keterangan --}}
@@ -588,11 +626,24 @@
                 <div class="space-y-3.5">
                     <div>
                         <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Tanggal Awal</label>
-                        <input type="date" name="tanggal_awal" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                        <input type="date" name="tanggal_awal" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
                     </div>
                     <div>
                         <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Tanggal Akhir</label>
-                        <input type="date" name="tanggal_akhir" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                        <input type="date" name="tanggal_akhir" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
+
+                        {{-- Inline Error Message --}}
+                        <div id="filter-date-error" class="hidden mt-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-xs sm:text-sm text-red-700 transition" role="alert">
+                            <div class="flex items-start gap-2.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                <div>
+                                    <p class="font-semibold text-red-800">Rentang tanggal tidak valid</p>
+                                    <p class="mt-0.5 text-xs text-red-600">Tanggal awal tidak boleh lebih besar dari tanggal akhir.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Jenis Pengajuan</label>
@@ -684,13 +735,46 @@
                         <div class="space-y-3">
                             <div>
                                 <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Tanggal Awal</label>
-                                <input type="date" name="tanggal_awal" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                                <input type="date" name="tanggal_awal" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
                             </div>
                             <div>
                                 <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Tanggal Akhir</label>
-                                <input type="date" name="tanggal_akhir" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                                <input type="date" name="tanggal_akhir" class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
+
+                                {{-- Inline Error Message --}}
+                                <div id="export-date-error" class="hidden mt-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-xs sm:text-sm text-red-700 transition" role="alert">
+                                    <div class="flex items-start gap-2.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        <div>
+                                            <p class="font-semibold text-red-800">Rentang tanggal tidak valid</p>
+                                            <p class="mt-0.5 text-xs text-red-600">Tanggal awal tidak boleh lebih besar dari tanggal akhir.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {{-- Inline Error Message in Export Modal --}}
+                <div id="export-error-container" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-3.5 sm:p-4 text-xs sm:text-sm text-amber-900 transition" role="alert">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600 shrink-0 mt-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p id="export-error-title" class="font-bold text-amber-900">Perhatian</p>
+                            <p id="export-error-message" class="mt-0.5 text-xs sm:text-sm text-amber-800 leading-relaxed"></p>
+                        </div>
+                        <button type="button" id="close-export-error" class="text-amber-500 hover:text-amber-800 p-0.5 rounded transition shrink-0" aria-label="Tutup pesan error">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -814,7 +898,8 @@
             },
             statusClass(status) {
                 switch(status) {
-                    case 'Pending': return 'bg-yellow-100 text-yellow-700';
+                    case 'Pending':
+                    case 'Menunggu': return 'bg-yellow-100 text-yellow-700';
                     case 'Disetujui': return 'bg-green-100 text-green-700';
                     case 'Ditolak': return 'bg-red-100 text-red-700';
                     default: return 'bg-slate-100 text-slate-700';
@@ -956,8 +1041,50 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     `;
 
+    function triggerToast(message, type = 'error') {
+        const alpineComponent = document.querySelector('[x-data="approvalModal()"]');
+        if (alpineComponent && alpineComponent._x_dataStack && alpineComponent._x_dataStack[0]) {
+            alpineComponent._x_dataStack[0].showToast(message, type);
+        }
+    }
+
+    const filterTglAwal = filterForm ? filterForm.querySelector('input[name="tanggal_awal"]') : null;
+    const filterTglAkhir = filterForm ? filterForm.querySelector('input[name="tanggal_akhir"]') : null;
+    const filterDateError = document.getElementById('filter-date-error');
+
+    function validateFilterDateRange() {
+        const tglAwal = filterTglAwal ? filterTglAwal.value : '';
+        const tglAkhir = filterTglAkhir ? filterTglAkhir.value : '';
+
+        if (tglAwal && tglAkhir && tglAwal > tglAkhir) {
+            if (filterDateError) filterDateError.classList.remove('hidden');
+            if (filterTglAkhir) {
+                filterTglAkhir.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-500');
+                filterTglAkhir.classList.remove('border-slate-300');
+            }
+            return false;
+        } else {
+            if (filterDateError) filterDateError.classList.add('hidden');
+            if (filterTglAkhir) {
+                filterTglAkhir.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-500');
+                filterTglAkhir.classList.add('border-slate-300');
+            }
+            return true;
+        }
+    }
+
+    if (filterTglAwal) filterTglAwal.addEventListener('input', validateFilterDateRange);
+    if (filterTglAkhir) filterTglAkhir.addEventListener('input', validateFilterDateRange);
+
+    function closeFilter() {
+        filterModal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        validateFilterDateRange();
+    }
+
     resetFilter.addEventListener('click', function () {
         filterForm.reset();
+        validateFilterDateRange();
         closeFilter();
         tableContainer.innerHTML = loadingHtml;
         loadApprovals('');
@@ -965,6 +1092,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     filterForm.addEventListener('submit', function (event) {
         event.preventDefault();
+
+        if (!validateFilterDateRange()) {
+            return;
+        }
+
         const formData = new FormData(filterForm);
         const tanggalAwal = formData.get('tanggal_awal');
         const tanggalAkhir = formData.get('tanggal_akhir');
@@ -984,8 +1116,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 'Accept': 'application/json'
             }
         })
-        .then(response => {
-            if (!response.ok) throw new Error('Gagal memfilter pengajuan.');
+        .then(async response => {
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                throw new Error(errJson.message || 'Gagal memfilter pengajuan.');
+            }
             return response.json();
         })
         .then(data => {
@@ -1001,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(error => {
             console.error(error);
-            alert('Gagal menerapkan filter.');
+            triggerToast(error.message || 'Gagal menerapkan filter.', 'error');
         });
     });
 
@@ -1011,6 +1146,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const cancelExport = document.getElementById('cancel-export');
     const exportForm = document.getElementById('export-form');
     const exportSubmitBtn = document.getElementById('export-submit-btn');
+    const exportErrorContainer = document.getElementById('export-error-container');
+    const exportErrorTitle = document.getElementById('export-error-title');
+    const exportErrorMessage = document.getElementById('export-error-message');
+    const closeExportErrorBtn = document.getElementById('close-export-error');
     let exportIsLoading = false;
 
     function setExportLoading(loading) {
@@ -1021,10 +1160,79 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function showExportError(message, title = null) {
+        if (!exportErrorContainer) return;
+        if (!title) {
+            const lower = (message || '').toLowerCase();
+            if (lower.includes('tidak ada data')) {
+                title = 'Tidak ada data pengajuan';
+            } else if (lower.includes('tanggal')) {
+                title = 'Rentang tanggal tidak valid';
+            } else {
+                title = 'Gagal mengekspor data';
+            }
+        }
+        if (exportErrorTitle) exportErrorTitle.textContent = title;
+        if (exportErrorMessage) exportErrorMessage.textContent = message || 'Terjadi kesalahan saat mengekspor data.';
+        exportErrorContainer.classList.remove('hidden');
+    }
+
+    function hideExportError() {
+        if (!exportErrorContainer) return;
+        exportErrorContainer.classList.add('hidden');
+    }
+
+    if (closeExportErrorBtn) {
+        closeExportErrorBtn.addEventListener('click', hideExportError);
+    }
+
     function openExport() {
         setExportLoading(false);
+        hideExportError();
         exportModal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+    }
+
+    const exportTglAwal = exportForm ? exportForm.querySelector('input[name="tanggal_awal"]') : null;
+    const exportTglAkhir = exportForm ? exportForm.querySelector('input[name="tanggal_akhir"]') : null;
+    const exportDateError = document.getElementById('export-date-error');
+
+    function validateExportDateRange() {
+        const tglAwal = exportTglAwal ? exportTglAwal.value : '';
+        const tglAkhir = exportTglAkhir ? exportTglAkhir.value : '';
+
+        if (tglAwal && tglAkhir && tglAwal > tglAkhir) {
+            if (exportDateError) exportDateError.classList.remove('hidden');
+            if (exportTglAkhir) {
+                exportTglAkhir.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-500');
+                exportTglAkhir.classList.remove('border-slate-300');
+            }
+            showExportError('Tanggal awal tidak boleh lebih besar dari tanggal akhir.', 'Rentang tanggal tidak valid');
+            return false;
+        } else {
+            if (exportDateError) exportDateError.classList.add('hidden');
+            if (exportTglAkhir) {
+                exportTglAkhir.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-500');
+                exportTglAkhir.classList.add('border-slate-300');
+            }
+            if (exportErrorTitle && exportErrorTitle.textContent === 'Rentang tanggal tidak valid') {
+                hideExportError();
+            }
+            return true;
+        }
+    }
+
+    if (exportTglAwal) exportTglAwal.addEventListener('input', validateExportDateRange);
+    if (exportTglAkhir) exportTglAkhir.addEventListener('input', validateExportDateRange);
+
+    if (exportForm) {
+        exportForm.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('change', () => {
+                if (exportErrorTitle && exportErrorTitle.textContent !== 'Rentang tanggal tidak valid') {
+                    hideExportError();
+                }
+            });
+        });
     }
 
     function closeExport() {
@@ -1032,6 +1240,8 @@ document.addEventListener('DOMContentLoaded', function () {
         exportModal.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         exportForm.reset();
+        hideExportError();
+        validateExportDateRange();
     }
 
     openExportModal.addEventListener('click', openExport);
@@ -1044,6 +1254,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        hideExportError();
+
         const formData = new FormData(exportForm);
         const format = formData.get('format');
         const tanggalAwal = formData.get('tanggal_awal');
@@ -1053,7 +1265,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const pegawaiId = formData.get('pegawai_id');
 
         if (!format) {
-            alert('Silakan pilih format export terlebih dahulu.');
+            showExportError('Silakan pilih format export terlebih dahulu.', 'Format belum dipilih');
+            return;
+        }
+
+        if (!validateExportDateRange()) {
             return;
         }
 
@@ -1073,21 +1289,46 @@ document.addEventListener('DOMContentLoaded', function () {
         if (jenisPengajuan) url.searchParams.set('jenis_pengajuan', jenisPengajuan);
         if (pegawaiId) url.searchParams.set('pegawai_id', pegawaiId);
 
-        window.location.href = url.toString();
-        setTimeout(() => {
+        fetch(url.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            if (!response.ok || contentType.includes('application/json')) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Gagal mengekspor data.');
+            }
+            return response.blob().then(blob => ({ blob, response }));
+        })
+        .then(({ blob, response }) => {
+            const disposition = response.headers.get('content-disposition');
+            let filename = 'persetujuan.' + (format === 'excel' ? 'xlsx' : format);
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
             setExportLoading(false);
             closeExport();
-            
-            // Tampilkan toast success via Alpine
-            const alpineComponent = document.querySelector('[x-data="approvalModal()"]');
-            if (alpineComponent && alpineComponent._x_dataStack && alpineComponent._x_dataStack[0]) {
-                alpineComponent._x_dataStack[0].showSuccessToast = true;
-                alpineComponent._x_dataStack[0].toastMessage = 'Data berhasil diekspor.';
-                setTimeout(() => {
-                    alpineComponent._x_dataStack[0].showSuccessToast = false;
-                }, 3000);
-            }
-        }, 1500);
+
+            triggerToast('Data berhasil diekspor.', 'success');
+        })
+        .catch(err => {
+            setExportLoading(false);
+            showExportError(err.message || 'Terjadi kesalahan saat mengekspor data.');
+        });
     });
 
     function setActiveTab(activeTab) {
@@ -1126,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(error => {
             console.error(error);
-            alert('Gagal memuat data pengajuan.');
+            triggerToast('Gagal memuat data pengajuan.', 'error');
         });
     }
 
@@ -1144,9 +1385,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    const currentStatus = new URLSearchParams(window.location.search).get('status') || '';
+    let currentStatus = new URLSearchParams(window.location.search).get('status') || '';
+    if (currentStatus.toLowerCase() === 'menunggu') currentStatus = 'Pending';
     const activeTab = Array.from(tabs).find(function (tab) {
-        return tab.dataset.status === currentStatus;
+        return (tab.dataset.status || '').toLowerCase() === currentStatus.toLowerCase();
     });
 
     if (activeTab) {

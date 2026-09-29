@@ -314,6 +314,18 @@ class AttendanceReportController extends Controller
     {
         Carbon::setLocale('id');
 
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        if ($startDate && $endDate && $startDate > $endDate) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.',
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.');
+        }
+
         if ($request->query('status') === 'Tidak Hadir') {
             $absentRecords = $this->getAbsentRecords($request);
             $page = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
@@ -369,6 +381,10 @@ class AttendanceReportController extends Controller
 
     public function exportExcel(Request $request)
     {
+        if ($request->filled('start_date') && $request->filled('end_date') && $request->start_date > $request->end_date) {
+            return redirect()->back()->with('error', 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.');
+        }
+
         Carbon::setLocale('id');
 
         if ($request->query('status') === 'Tidak Hadir') {
@@ -453,6 +469,10 @@ class AttendanceReportController extends Controller
 
     public function exportCsv(Request $request)
     {
+        if ($request->filled('start_date') && $request->filled('end_date') && $request->start_date > $request->end_date) {
+            return redirect()->back()->with('error', 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.');
+        }
+
         Carbon::setLocale('id');
 
         if ($request->query('status') === 'Tidak Hadir') {
@@ -536,6 +556,10 @@ class AttendanceReportController extends Controller
 
     public function exportPdf(Request $request)
     {
+        if ($request->filled('start_date') && $request->filled('end_date') && $request->start_date > $request->end_date) {
+            return redirect()->back()->with('error', 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.');
+        }
+
         Carbon::setLocale('id');
 
         if ($request->query('status') === 'Tidak Hadir') {
