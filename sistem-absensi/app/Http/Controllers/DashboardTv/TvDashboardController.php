@@ -19,20 +19,7 @@ class TvDashboardController extends Controller
         
         // Resolve branding without session
         $logo = DB::table('settings')->where('organization_id', $org->organization_id)->where('key', 'company_logo')->value('value');
-        $logoUrl = null;
-        if ($logo && trim($logo) !== '') {
-            $logo = trim($logo);
-            if (preg_match('/^https?:\/\//i', $logo)) {
-                $logoUrl = $logo;
-            } elseif (str_starts_with($logo, 'images/') || str_starts_with($logo, 'assets/') || str_starts_with($logo, 'storage/')) {
-                $logoUrl = asset($logo);
-            } else {
-                $bucket = config('supabase.assets_bucket', 'company-assets');
-                $supabaseUrl = rtrim(config('supabase.url'), '/');
-                $logo = ltrim($logo, '/');
-                $logoUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$logo}";
-            }
-        }
+        $logoUrl = company_logo_url($logo);
 
         return view('dashboard-tv.index', array_merge($data, [
             'selectedDate' => $date,
@@ -268,21 +255,7 @@ class TvDashboardController extends Controller
                 'divisi' => $item->nama_divisi ?? 'IT',
                 'jabatan' => $item->nama_jabatan ?? 'Staff',
                 'jam_kerja' => $jamKerja,
-                'foto_profile' => (function() use ($item) {
-                    if (!$item->foto_profile) {
-                        return null;
-                    }
-                    if (str_starts_with($item->foto_profile, 'http://') || str_starts_with($item->foto_profile, 'https://')) {
-                        return $item->foto_profile;
-                    }
-                    $projectRef = 'fxovkmcrdeezrotwqjhb';
-                    $dbUser = env('DB_USERNAME', '');
-                    if (str_contains($dbUser, '.')) {
-                        $parts = explode('.', $dbUser);
-                        $projectRef = end($parts);
-                    }
-                    return "https://{$projectRef}.supabase.co/storage/v1/object/public/" . ltrim($item->foto_profile, '/');
-                })(),
+                'foto_profile' => supabase_public_url($item->foto_profile),
             ];
         });
 
