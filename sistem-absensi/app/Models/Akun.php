@@ -52,6 +52,15 @@ class Akun extends Authenticatable
         return strtolower(trim((string) ($this->attributes['role'] ?? ''))) === 'super admin';
     }
 
+    public function canAccessWebAdmin(): bool
+    {
+        if (! empty($this->role_id)) {
+            return $this->roleAkses?->hasAnyPrivilege() ?? false;
+        }
+
+        return $this->isSuperAdmin();
+    }
+
     /**
      * Accessor untuk $akun->role agar tetap kompatibel dengan pemanggilan string role lama.
      */

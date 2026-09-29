@@ -302,6 +302,50 @@ class SecurityTest extends TestCase
         $this->assertFalse($memberRole->fresh()->hasPrivilege('lihat_dashboard'));
     }
 
+    public function test_member_without_web_privileges_is_rejected_by_login_form()
+    {
+        $memberRole = Role::create([
+            'nama_role' => 'Anggota Login',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        Akun::create([
+            'username' => 'member-login',
+            'password' => bcrypt('password'),
+            'role_id' => $memberRole->role_id,
+            'role' => $memberRole->nama_role,
+            'pegawai_id' => $this->hrPegawaiA->pegawai_id,
+        ]);
+
+        $this->from('/login')
+            ->post(route('login.attempt'), [
+                'email' => 'member-login',
+                'password' => 'password',
+            ])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors([
+                'email' => 'Akun ini tidak memiliki akses ke Web Admin. Silakan gunakan akun dengan hak akses Web Admin untuk masuk.',
+            ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_super_admin_can_login_to_web_admin()
+    {
+        $superAdmin = Akun::create([
+            'username' => 'superadmin-login',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->post(route('login.attempt'), [
+            'email' => 'superadmin-login',
+            'password' => 'password',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($superAdmin);
+    }
+
     public function test_audit_log_uses_actor_name_for_login_activity_and_actual_role_column()
     {
         \Illuminate\Support\Facades\DB::table('audit_log')->insert([

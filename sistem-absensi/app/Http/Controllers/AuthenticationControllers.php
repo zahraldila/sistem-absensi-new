@@ -20,7 +20,7 @@ class AuthenticationControllers extends Controller
      * - Redirect ke dashboard admin
      *
      * @param LoginRequest $request
-     * @return \Illuminate\Http\RedirectResponse
+    * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
      */
     public function login(LoginRequest $request)
     {
@@ -75,6 +75,21 @@ class AuthenticationControllers extends Controller
 
                 return back()
                     ->withErrors(['email' => $pesanTidakAktif])
+                    ->onlyInput('email');
+            }
+
+            if (! $akun->canAccessWebAdmin()) {
+                $pesanTidakMemilikiAkses = 'Akun ini tidak memiliki akses ke Web Admin. Silakan gunakan akun dengan hak akses Web Admin untuk masuk.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $pesanTidakMemilikiAkses,
+                    ], 403);
+                }
+
+                return back()
+                    ->withErrors(['email' => $pesanTidakMemilikiAkses])
                     ->onlyInput('email');
             }
 
