@@ -39,6 +39,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Color _primaryColor = const Color(0xFF0891B2);
   bool _isLoadingProfile = true;
 
+  // Jadwal Kerja Resmi Organisasi
+  WorkScheduleInfo? _workSchedule;
+
   // Daftar Cabang / Lokasi Kantor Dinamis (terisolasi per organisasi)
   List<OfficeLocation> _locations = [];
   OfficeLocation? _selectedLocation;
@@ -110,8 +113,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       });
     }
 
-    // Muat data profil & cabang dari Supabase dengan isolasi organization_id
+    // Muat data profil, jadwal kerja & cabang dari Supabase dengan isolasi organization_id
     await _loadCompanyProfile();
+    await _loadWorkSchedule();
     await _loadLocations(initialSelectedId: savedLocId);
     _subscribeLocationUpdates();
   }
@@ -133,8 +137,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     _loadCompanyProfile();
+    _loadWorkSchedule();
     _loadLocations();
     _subscribeLocationUpdates();
+  }
+
+  Future<void> _loadWorkSchedule() async {
+    if (_organizationId == null) return;
+    final schedule = await _attendanceService.fetchWorkSchedule(
+      organizationId: _organizationId,
+    );
+    if (mounted) {
+      setState(() {
+        _workSchedule = schedule;
+      });
+    }
   }
 
   Future<void> _loadCompanyProfile() async {
@@ -597,11 +614,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       Navigator.pop(dialogCtx);
                       final messenger = ScaffoldMessenger.of(context);
                       await _loadCompanyProfile();
+                      await _loadWorkSchedule();
                       await _loadLocations();
                       if (mounted) {
                         messenger.showSnackBar(
                           SnackBar(
-                            content: const Text('Data & Branding berhasil disinkronkan.'),
+                            content: const Text('Data, Jadwal & Branding berhasil disinkronkan.'),
                             backgroundColor: _primaryColor,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1168,6 +1186,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ClockWidget(
                   primaryColor: _primaryColor,
                 ),
+
+                // Badge Jadwal Jam Kerja Resmi Organisasi
+                if (_workSchedule != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time_filled_rounded,
+                          size: 14,
+                          color: _primaryColor,
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          'Jam Kerja: ${_workSchedule!.checkInTime} - ${_workSchedule!.checkOutTime}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const Spacer(flex: 1),
 

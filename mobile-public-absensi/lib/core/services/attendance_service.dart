@@ -61,6 +61,16 @@ class OrganizationInfo {
   });
 }
 
+class WorkScheduleInfo {
+  final String checkInTime;
+  final String checkOutTime;
+
+  WorkScheduleInfo({
+    required this.checkInTime,
+    required this.checkOutTime,
+  });
+}
+
 class AttendanceResult {
   final AttendanceStatus status;
   final String employeeName;
@@ -205,6 +215,45 @@ class AttendanceService {
     }
 
     return [];
+  }
+
+  /// Mengambil jadwal kerja aktif (jam masuk & jam pulang) untuk organisasi
+  Future<WorkScheduleInfo?> fetchWorkSchedule({int? organizationId}) async {
+    try {
+      var query = _supabase
+          .from('jadwal_kerja')
+          .select('jam_masuk, jam_pulang, organization_id');
+
+      if (organizationId != null) {
+        query = query.eq('organization_id', organizationId);
+      }
+
+      final List<dynamic> data = await query
+          .order('tanggal_berlaku', ascending: false)
+          .limit(1);
+
+      if (data.isNotEmpty) {
+        final row = data.first;
+        final rawMasuk = row['jam_masuk']?.toString() ?? '08:00';
+        final rawPulang = row['jam_pulang']?.toString() ?? '17:00';
+
+        String formatTime(String timeStr) {
+          final parts = timeStr.split(':');
+          if (parts.length >= 2) {
+            return '${parts[0].padLeft(2, '0')}:${parts[1].padLeft(2, '0')}';
+          }
+          return timeStr;
+        }
+
+        return WorkScheduleInfo(
+          checkInTime: formatTime(rawMasuk),
+          checkOutTime: formatTime(rawPulang),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetchWorkSchedule: $e');
+    }
+    return null;
   }
 
   /// Stream Realtime untuk sinkronisasi otomatis cabang dari Supabase per organisasi
