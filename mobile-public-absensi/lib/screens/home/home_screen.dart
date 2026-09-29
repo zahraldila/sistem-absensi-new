@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
 import '../../core/services/attendance_service.dart';
+import '../../core/services/device_context_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/network_service.dart';
 import '../../core/services/tts_service.dart';
 import '../../core/utils/color_helper.dart';
+import '../activation/device_activation_screen.dart';
 import '../attendance/checkout_success_screen.dart';
 import '../attendance/success_screen.dart';
 import 'views/branch_selection_view.dart';
@@ -26,14 +28,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final AttendanceService _attendanceService = AttendanceService();
   final TtsService _ttsService = TtsService();
 
-  late Stream<DateTime> _timeStream;
+  // Status Konfigurasi Organisasi Perangkat
+  bool _isCheckingConfig = true;
+  bool _isConfigured = false;
+  int? _organizationId;
+  String? _organizationCode;
 
-  String _companyName = 'PT Selada Indonesia Produktif';
+  String _companyName = 'Sistem Absensi';
   String? _logoUrl;
-  Color _primaryColor = const Color(0xFF0891B2); // Default fallback warna SIP (#0891B2)
+  Color _primaryColor = const Color(0xFF0891B2);
   bool _isLoadingProfile = true;
 
-  // Daftar Cabang / Lokasi Kantor Dinamis
+  // Daftar Cabang / Lokasi Kantor Dinamis (terisolasi per organisasi)
   List<OfficeLocation> _locations = [];
   OfficeLocation? _selectedLocation;
   StreamSubscription<List<OfficeLocation>>? _locationSubscription;
@@ -51,19 +57,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _timeStream = Stream.periodic(
-      const Duration(seconds: 1),
-      (_) => DateTime.now(),
-    );
 
     _ttsService.init();
-    _loadCompanyProfile();
-    _loadLocations();
-    _subscribeLocationUpdates();
     _checkInitialNetwork();
     _networkSubscription = NetworkService.onConnectivityChanged.listen((online) {
       if (mounted) setState(() => _isOnline = online);
     });
+
+    _checkDeviceConfiguration();
     _initNfcListener();
   }
 
@@ -72,11 +73,82 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _isOnline = online);
   }
 
-  Future<void> _loadCompanyProfile() async {
-    final profile = await _attendanceService.fetchCompanyProfile();
+  /// Memeriksa apakah perangkat sudah diaktivasi dengan organisasi tertentu
+  Future<void> _checkDeviceConfiguration() async {
+    final configured = await DeviceContextService.isDeviceConfigured();
+    if (!configured) {
+      if (mounted) {
+        setState(() {
+          _isConfigured = false;
+          _isCheckingConfig = false;
+        });
+      }
+      return;
+    }
+
+    final orgId = await DeviceContextService.getOrganizationId();
+    final orgCode = await DeviceContextService.getOrganizationCode();
+    final savedName = await DeviceContextService.getOrganizationName();
+    final savedLogo = await DeviceContextService.getLogoUrl();
+    final savedColor = await DeviceContextService.getPrimaryColor();
+    final savedLocId = await DeviceContextService.getSelectedLocationId();
+
     if (mounted) {
       setState(() {
-        _companyName = profile['company_name'] ?? 'PT Selada Indonesia Produktif';
+        _isConfigured = true;
+        _isCheckingConfig = false;
+        _organizationId = orgId;
+        _organizationCode = orgCode;
+        if (savedName != null) _companyName = savedName;
+        _logoUrl = savedLogo;
+        if (savedColor != null) {
+          _primaryColor = ColorHelper.parseHexColor(
+            savedColor,
+            defaultColor: const Color(0xFF0891B2),
+          );
+        }
+      });
+    }
+
+    // Muat data profil & cabang dari Supabase dengan isolasi organization_id
+    await _loadCompanyProfile();
+    await _loadLocations(initialSelectedId: savedLocId);
+    _subscribeLocationUpdates();
+  }
+
+  /// Dipanggil saat aktivasi organisasi di DeviceActivationScreen sukses
+  void _onActivationSuccess(OrganizationInfo info) {
+    setState(() {
+      _isConfigured = true;
+      _organizationId = info.id;
+      _organizationCode = info.code;
+      _companyName = info.name;
+      _logoUrl = info.logoUrl;
+      _primaryColor = ColorHelper.parseHexColor(
+        info.primaryColorHex,
+        defaultColor: const Color(0xFF0891B2),
+      );
+      _isLoadingProfile = false;
+      _selectedLocation = null;
+    });
+
+    _loadCompanyProfile();
+    _loadLocations();
+    _subscribeLocationUpdates();
+  }
+
+  Future<void> _loadCompanyProfile() async {
+    if (_organizationId == null) return;
+
+    final profile = await _attendanceService.fetchCompanyProfile(
+      organizationId: _organizationId,
+    );
+
+    if (mounted) {
+      setState(() {
+        if (profile['company_name'] != null && profile['company_name']!.isNotEmpty) {
+          _companyName = profile['company_name']!;
+        }
         _logoUrl = profile['company_logo'];
         _primaryColor = ColorHelper.parseHexColor(
           profile['primary_color'],
@@ -84,26 +156,50 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
         _isLoadingProfile = false;
       });
+
+      // Perbarui cache local
+      await DeviceContextService.saveOrganizationContext(
+        organizationId: _organizationId!,
+        code: _organizationCode ?? '',
+        name: _companyName,
+        logoUrl: _logoUrl,
+        primaryColor: profile['primary_color'],
+      );
     }
   }
 
-  Future<void> _loadLocations() async {
-    final locs = await _attendanceService.fetchLocations();
-    if (mounted && locs.isNotEmpty) {
+  Future<void> _loadLocations({int? initialSelectedId}) async {
+    if (_organizationId == null) return;
+
+    final locs = await _attendanceService.fetchLocations(
+      organizationId: _organizationId,
+    );
+
+    if (mounted) {
       setState(() {
         _locations = locs;
+        if (initialSelectedId != null) {
+          _selectedLocation = locs.cast<OfficeLocation?>().firstWhere(
+                (l) => l?.id == initialSelectedId,
+                orElse: () => locs.isNotEmpty ? locs.first : null,
+              );
+        }
       });
     }
   }
 
   void _subscribeLocationUpdates() {
+    if (_organizationId == null) return;
+
     try {
-      _locationSubscription = _attendanceService.streamLocations().listen(
+      _locationSubscription?.cancel();
+      _locationSubscription = _attendanceService
+          .streamLocations(organizationId: _organizationId)
+          .listen(
         (locs) {
           if (mounted && locs.isNotEmpty) {
             setState(() {
               _locations = locs;
-              // Jika lokasi yang dipilih sebelumnya sudah dihapus, perbarui ke lokasi pertama
               if (_selectedLocation != null &&
                   !locs.any((l) => l.id == _selectedLocation!.id)) {
                 _selectedLocation = locs.first;
@@ -130,7 +226,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
       if (!isAvailable) {
         debugPrint('NFC hardware tidak aktif / tersedia pada perangkat ini');
-        // Otomatis bunyikan suara peringatan sekali saat mendeteksi status NFC OFF
         Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted && !_isNfcAvailable) {
             _ttsService.speakNfcDisabled();
@@ -193,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Memproses alur absensi NFC dengan lokasi cabang terpilih
+  /// Memproses alur absensi NFC dengan isolasi organisasi ketat
   Future<void> _handleNfcAttendance(String nfcSerialNumber) async {
     final now = DateTime.now();
 
@@ -208,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (_isProcessing) return;
 
-    // 1. CEK STATUS INTERNET PROAKTIF (Instan tanpa tunggu timeout database)
+    // 1. CEK STATUS INTERNET PROAKTIF
     if (!_isOnline) {
       _ttsService.speakNoInternet();
       if (mounted) {
@@ -217,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    // 2. CEK STATUS GPS TERLEBIH DAHULU (Wajib Aktif)
+    // 2. CEK STATUS GPS (Wajib Aktif)
     final bool isGpsOn = await LocationService.isLocationEnabled();
     if (!isGpsOn) {
       _ttsService.speakLocationDisabled();
@@ -233,6 +328,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final result = await _attendanceService.processNfcTap(
         nfcSerialNumber,
+        organizationId: _organizationId,
         selectedLocation: _selectedLocation,
       );
 
@@ -241,10 +337,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       debugPrint('[NFC SCAN] Converted Hex UID: $nfcSerialNumber');
 
       if (result.status == AttendanceStatus.checkInSuccess) {
-        // 1. Putar Suara Check-In
         _ttsService.speakCheckIn(result.employeeName);
 
-        // 2. Tampilkan Layar Sukses Check-In (Auto pop dalam 3 detik)
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -260,10 +354,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         );
       } else if (result.status == AttendanceStatus.checkOutSuccess) {
-        // 1. Putar Suara Check-Out
         _ttsService.speakCheckOut(result.employeeName);
 
-        // 2. Tampilkan Layar Sukses Check-Out (Auto pop dalam 3 detik)
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -279,10 +371,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         );
       } else if (result.status == AttendanceStatus.alreadyCompleted) {
-        // 1. Putar Suara: "Absensi hari ini sudah selesai, [Nama Pegawai]."
         _ttsService.speakAlreadyCompleted(result.employeeName);
 
-        // 2. Tampilkan notifikasi visual sejenak di layar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF0F172A),
@@ -331,6 +421,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final bool isCheckInSaveFailed = rawError.contains('Check In gagal disimpan');
         final bool isCheckOutSaveFailed = rawError.contains('Check Out gagal disimpan');
         final bool isCardNotFound = rawError.contains('tidak terdaftar');
+        final bool isOtherOrg = rawError.contains('organisasi lain');
         final bool isInactiveAccount = rawError.contains('tidak aktif');
         final bool isEmployeeFetchError = rawError.contains('Data pegawai') ||
             rawError.contains('gagal diperoleh') ||
@@ -360,6 +451,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         } else if (isCheckOutSaveFailed) {
           _ttsService.speakCheckOutSaveFailed();
           displayMsg = 'Check Out gagal disimpan, silakan coba lagi.';
+        } else if (isOtherOrg) {
+          _ttsService.speak('Kartu terdaftar pada organisasi lain.');
+          displayMsg = 'Kartu ini terdaftar pada organisasi lain. Presensi ditolak.';
         } else if (isInactiveAccount) {
           _ttsService.speakInactiveAccount();
           displayMsg = 'Akun pegawai tidak aktif. Presensi ditolak.';
@@ -412,6 +506,224 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Menampilkan Dialog Admin Pengaturan Perangkat
+  void _showAdminSettingsModal() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.admin_panel_settings_rounded, color: _primaryColor, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Pengaturan Perangkat',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => Navigator.pop(dialogCtx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Organisasi: $_companyName (${_organizationCode ?? 'ID: $_organizationId'})',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  if (_selectedLocation != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cabang Aktif: ${_selectedLocation!.name}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 16),
+
+                  // Opsi 1: Ganti Cabang
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.domain_rounded, color: Color(0xFF475569)),
+                    title: const Text('Ganti Lokasi Cabang', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    subtitle: const Text('Pilih kantor cabang lain untuk perangkat ini', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      Navigator.pop(dialogCtx);
+                      setState(() {
+                        _selectedLocation = null;
+                      });
+                    },
+                  ),
+
+                  // Opsi 2: Sinkronkan Ulang Branding
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.sync_rounded, color: Color(0xFF475569)),
+                    title: const Text('Sinkronkan Data & Branding', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    subtitle: const Text('Perbarui logo, warna, dan daftar cabang terbaru', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () async {
+                      Navigator.pop(dialogCtx);
+                      final messenger = ScaffoldMessenger.of(context);
+                      await _loadCompanyProfile();
+                      await _loadLocations();
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: const Text('Data & Branding berhasil disinkronkan.'),
+                            backgroundColor: _primaryColor,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+
+                  // Opsi 3: Putuskan Hubungan / Reset Perangkat (Pindah Organisasi)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.link_off_rounded, color: Color(0xFFDC2626)),
+                    title: const Text('Putuskan Sambungan Organisasi', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFFDC2626))),
+                    subtitle: const Text('Reset dan hubungkan ke perusahaan lain', style: TextStyle(fontSize: 11, color: Color(0xFFEF4444))),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFDC2626)),
+                    onTap: () {
+                      Navigator.pop(dialogCtx);
+                      _showDisconnectConfirmDialog();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Dialog Konfirmasi Putus Hubungan Organisasi
+  void _showDisconnectConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 32),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Putuskan Sambungan?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Perangkat ini akan dilepas dari $_companyName dan kembali ke layar aktivasi awal.',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF64748B),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Batal', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await DeviceContextService.clearOrganizationContext();
+                        _locationSubscription?.cancel();
+                        setState(() {
+                          _isConfigured = false;
+                          _organizationId = null;
+                          _organizationCode = null;
+                          _selectedLocation = null;
+                          _locations = [];
+                          _companyName = 'Sistem Absensi';
+                          _logoUrl = null;
+                        });
+                      },
+                      child: const Text('Ya, Lepas', style: TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Menampilkan dialog peringatan ketika GPS / Location dalam kondisi OFF
   void _showLocationDisabledAlert() {
     showDialog(
@@ -425,7 +737,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Lingkaran Ikon dengan Sentuhan Tema Dinamis
               Container(
                 width: 72,
                 height: 72,
@@ -466,8 +777,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-
-              // Tombol Aksi Utama dengan Warna Brand Dinamis
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -529,7 +838,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Lingkaran Ikon dengan Sentuhan Tema Dinamis
               Container(
                 width: 72,
                 height: 72,
@@ -570,8 +878,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-
-              // Tombol Coba Lagi dengan Warna Brand Dinamis
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -702,7 +1008,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // 1. TAMPILAN AWAL: Jika lokasi cabang belum dipilih, tampilkan layar pemilihan cabang
+    // 0. LOADING SCREEN: Mengecek status konfigurasi perangkat di awal
+    if (_isCheckingConfig) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // 1. TAMPILAN AKTIVASI: Jika perangkat belum terhubung ke organisasi
+    if (!_isConfigured) {
+      return DeviceActivationScreen(
+        onActivationSuccess: _onActivationSuccess,
+      );
+    }
+
+    // 2. TAMPILAN PEMILIHAN CABANG: Jika lokasi cabang belum dipilih
     if (_selectedLocation == null) {
       return BranchSelectionView(
         companyName: _companyName,
@@ -713,14 +1035,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() {
             _selectedLocation = chosenLocation;
           });
+          DeviceContextService.saveSelectedLocationId(chosenLocation.id);
         },
       );
     }
 
-    // 2. TAMPILAN UTAMA: Setelah cabang dipilih, tampilkan jam digital dan area scanner absensi
+    // 3. TAMPILAN UTAMA: Setelah cabang dipilih, tampilkan scanner standby
     return Scaffold(
       body: Container(
-        // Latar Belakang Classic Executive: Warm Ivory Gradient Halus
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -736,19 +1058,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 18.0),
             child: Column(
               children: [
-                // Header Perusahaan dengan Badge Cabang Terpilih (Paling Atas)
+                // Header Perusahaan dengan Badge Cabang & Menu Admin
                 CompanyHeader(
                   companyName: _companyName,
                   logoUrl: _logoUrl,
                   isLoading: _isLoadingProfile,
                   primaryColor: _primaryColor,
-                  trailing: LocationPickerBadge(
-                    locations: _locations,
-                    selectedLocation: _selectedLocation,
-                    primaryColor: _primaryColor,
-                    onLocationChanged: (newLoc) {
-                      setState(() => _selectedLocation = newLoc);
-                    },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LocationPickerBadge(
+                        locations: _locations,
+                        selectedLocation: _selectedLocation,
+                        primaryColor: _primaryColor,
+                        onLocationChanged: (newLoc) {
+                          setState(() => _selectedLocation = newLoc);
+                          DeviceContextService.saveSelectedLocationId(newLoc.id);
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      // Tombol Pengaturan Admin Perangkat
+                      InkWell(
+                        onTap: _showAdminSettingsModal,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.settings_outlined,
+                            size: 18,
+                            color: Colors.blueGrey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -780,7 +1134,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
 
-                // Banner Peringatan NFC Belum Aktif (Di Bawah Header dengan Dynamic Theming)
+                // Banner Peringatan NFC Belum Aktif
                 if (!_isNfcAvailable)
                   Container(
                     margin: const EdgeInsets.only(top: 14),
@@ -812,13 +1166,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 // Digital Clock Hub dengan Aksen Warna Dinamis
                 ClockWidget(
-                  timeStream: _timeStream,
                   primaryColor: _primaryColor,
                 ),
 
                 const Spacer(flex: 1),
 
-                // Area Pemindai Kartu NFC (Medallion & Ripple Dinamis sesuai primary_color)
+                // Area Pemindai Kartu NFC
                 Expanded(
                   flex: 8,
                   child: NfcScanArea(
