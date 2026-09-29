@@ -13,11 +13,11 @@
         @endphp
         <div class="flex items-center gap-3">
             {{-- Logo --}}
-            <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-white flex items-center justify-center p-1 border border-slate-100 shadow-sm">
+            <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-white flex items-center justify-center border border-slate-100 shadow-sm">
                 @if($companyLogo)
-                    <img src="{{ $companyLogo }}" alt="Logo {{ $companyName }}" class="h-full w-full object-contain" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                    <img src="{{ $companyLogo }}" alt="Logo {{ $companyName }}" class="h-full w-full object-cover" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
                 @endif
-                <span @if($companyLogo) hidden @endif class="h-full w-full rounded-lg bg-primary text-white flex items-center justify-center text-xs font-bold">
+                <span @if($companyLogo) hidden @endif class="h-full w-full rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
                     @if($companyInitials)
                         {{ $companyInitials }}
                     @else
