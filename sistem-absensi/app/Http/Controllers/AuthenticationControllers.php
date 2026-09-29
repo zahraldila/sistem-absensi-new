@@ -59,9 +59,11 @@ class AuthenticationControllers extends Controller
                     ->onlyInput('email');
             }
 
-            // Cek status pegawai — hanya tolak jika eksplisit 'Tidak Aktif'.
-            // Status 'Aktif' dan NULL tetap dapat login seperti sebelumnya.
-            if ($akun->pegawai && $akun->pegawai->status === 'Tidak Aktif') {
+                        // Cek status akun & pegawai — tolak jika status bernilai 'Tidak Aktif'.
+            $isAccountInactive = ($akun->status && strcasecmp(trim($akun->status), 'Tidak Aktif') === 0)
+                || ($akun->pegawai && strcasecmp(trim($akun->pegawai->status), 'Tidak Aktif') === 0);
+
+            if ($isAccountInactive) {
                 $pesanTidakAktif = 'Akun Anda tidak aktif. Silakan hubungi Admin.';
 
                 if ($request->expectsJson()) {
