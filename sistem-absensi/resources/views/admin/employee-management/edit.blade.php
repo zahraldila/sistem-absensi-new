@@ -60,7 +60,7 @@
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Role Akses</label>
                 @php
-                    $currentRole = old('role', $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Pegawai');
+                    $currentRole = old('role', $employee->akun->roleAkses->nama_role ?? 'Anggota');
                     if (strtolower($currentRole) === 'admin') $currentRole = 'Admin';
                     elseif (strtolower($currentRole) === 'pegawai' || strtolower($currentRole) === 'karyawan') $currentRole = 'Pegawai';
                     elseif (strtolower($currentRole) === 'hr' || strtolower($currentRole) === 'hrd' || strtolower($currentRole) === 'hr / hrd') $currentRole = 'HR / HRD';
@@ -75,7 +75,7 @@
                     @else
                         <option value="HR / HRD" {{ $currentRole == 'HR / HRD' ? 'selected' : '' }}>HR / HRD</option>
                         <option value="Direktur" {{ $currentRole == 'Direktur' ? 'selected' : '' }}>Direktur</option>
-                        <option value="Pegawai" {{ $currentRole == 'Pegawai' ? 'selected' : '' }}>Pegawai</option>
+                        <option value="Anggota" {{ $currentRole == 'Anggota' ? 'selected' : '' }}>Anggota</option>
                     @endif
                 </select>
                 @error('role')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror

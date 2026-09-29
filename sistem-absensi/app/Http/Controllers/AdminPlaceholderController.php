@@ -83,8 +83,13 @@ class AdminPlaceholderController extends Controller
             $daftarRole = \App\Models\Role::with('privileges')
                 ->withCount('akun')
                 ->where('organization_id', $orgId)
+                ->whereRaw('LOWER(nama_role) != ?', ['anggota'])
                 ->orderBy('role_id')
                 ->get();
+            $jumlahAnggota = (int) \App\Models\Role::where('organization_id', $orgId)
+                ->whereRaw('LOWER(nama_role) = ?', ['anggota'])
+                ->withCount('akun')
+                ->value('akun_count');
             $daftarPrivilege = \App\Models\Privilege::orderBy('privilege_id')->get()->groupBy('kategori');
             $selectedRoleId = (int) $request->query('role_id', ($daftarRole->first()?->role_id ?? 1));
 
@@ -96,6 +101,7 @@ class AdminPlaceholderController extends Controller
                 'daftarLokasi',
                 'activeTab',
                 'daftarRole',
+                'jumlahAnggota',
                 'daftarPrivilege',
                 'selectedRoleId'
             ));
@@ -123,6 +129,11 @@ class AdminPlaceholderController extends Controller
         try {
             $role = \App\Models\Role::where('organization_id', $orgId)
                 ->findOrFail($request->role_id);
+            if ($role->isMemberRole()) {
+                return redirect()
+                    ->route('admin.tampilan-branding', ['tab' => 'roles'])
+                    ->with('error', 'Hak akses Anggota tidak dapat dikonfigurasi karena role ini tidak memiliki akses Web Admin.');
+            }
             $privilegeIds = $request->input('privilege_ids', []);
 
             // Sinkronisasi hak akses ke tabel pivot role_privilege
@@ -168,6 +179,10 @@ class AdminPlaceholderController extends Controller
                 function ($attribute, $value, $fail) use ($orgId) {
                     if (strcasecmp(trim($value), 'Super Admin') === 0) {
                         $fail('Nama role Super Admin dicadangkan untuk akses sistem.');
+                        return;
+                    }
+                    if (strcasecmp(trim($value), 'Anggota') === 0) {
+                        $fail('Role Anggota dikelola oleh sistem dan tidak dapat dibuat ulang.');
                         return;
                     }
 
@@ -247,6 +262,12 @@ class AdminPlaceholderController extends Controller
                 return redirect()
                     ->route('admin.tampilan-branding', ['tab' => 'roles'])
                     ->with('error', 'Data role tidak ditemukan.');
+            }
+
+            if ($role->isMemberRole()) {
+                return redirect()
+                    ->route('admin.tampilan-branding', ['tab' => 'roles'])
+                    ->with('error', 'Role Anggota dikelola oleh sistem dan tidak dapat dihapus.');
             }
 
             // Periksa apakah role masih direferensikan oleh akun/user

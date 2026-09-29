@@ -64,12 +64,12 @@
                     <option value="">Pilih Role Akses</option>
                     @if (!empty($filters['master_roles']) && count($filters['master_roles']) > 0)
                         @foreach ($filters['master_roles'] as $mr)
-                            <option value="{{ $mr->nama_role }}" {{ old('role', 'Pegawai') == $mr->nama_role ? 'selected' : '' }}>{{ $mr->nama_role }}</option>
+                            <option value="{{ $mr->nama_role }}" {{ old('role', 'Anggota') == $mr->nama_role ? 'selected' : '' }}>{{ $mr->nama_role }}</option>
                         @endforeach
                     @else
                         <option value="HR / HRD" {{ old('role') == 'HR / HRD' ? 'selected' : '' }}>HR / HRD</option>
                         <option value="Direktur" {{ old('role') == 'Direktur' ? 'selected' : '' }}>Direktur</option>
-                        <option value="Pegawai" {{ old('role', 'Pegawai') == 'Pegawai' ? 'selected' : '' }}>Pegawai</option>
+                        <option value="Anggota" {{ old('role', 'Anggota') == 'Anggota' ? 'selected' : '' }}>Anggota</option>
                     @endif
                 </select>
                 @error('role')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror

@@ -553,7 +553,7 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap flex-shrink-0">
                 <span class="text-xs font-bold text-slate-600 bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200">
-                    Total: {{ count($daftarRole) }} Role Master
+                    Total: {{ count($daftarRole) + 1 }} Role Master
                 </span>
                 <span class="text-xs font-bold text-primary bg-blue-50 px-3.5 py-1.5 rounded-xl border border-blue-100">
                     {{ $daftarPrivilege->flatten()->count() }} Fitur Privilege
@@ -565,6 +565,25 @@
         <div>
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Pilih Role Pengguna :</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="relative flex flex-col justify-between p-5 rounded-2xl border border-slate-200 bg-slate-50 text-left overflow-hidden min-w-0 opacity-80"
+                     aria-disabled="true" title="Anggota tidak memiliki akses Web Admin">
+                    <div class="min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="h-10 w-10 rounded-xl flex items-center justify-center text-base bg-slate-200 text-slate-600 flex-shrink-0">
+                                <i class="fa-solid fa-users" aria-hidden="true"></i>
+                            </span>
+                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white text-slate-600 border border-slate-200">
+                                {{ $jumlahAnggota ?? 0 }} Akun
+                            </span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900">Anggota</h3>
+                        <p class="text-xs text-slate-500 mt-1">Untuk login aplikasi mobile dan presensi. Tidak memiliki akses Web Admin.</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500">Akses Web Admin: Tidak ada</span>
+                        <span class="text-xs font-bold text-slate-500">Nonaktif</span>
+                    </div>
+                </div>
                 @foreach($daftarRole as $roleItem)
                 @php
                     $isSuper = strcasecmp($roleItem->nama_role, 'Super Admin') === 0;

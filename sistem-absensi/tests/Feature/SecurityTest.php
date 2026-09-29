@@ -209,6 +209,92 @@ class SecurityTest extends TestCase
         }
     }
 
+    public function test_anggota_role_has_no_web_access_and_cannot_receive_privileges()
+    {
+        $memberRole = Role::create([
+            'nama_role' => 'Anggota',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        $member = Akun::create([
+            'username' => 'member-a',
+            'password' => bcrypt('password'),
+            'role_id' => $memberRole->role_id,
+            'role' => 'Anggota',
+            'pegawai_id' => $this->hrPegawaiA->pegawai_id,
+        ]);
+
+        $this->assertFalse($memberRole->hasAnyPrivilege());
+
+        $this->actingAs($member)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->get('/admin')
+            ->assertForbidden();
+
+        $superAdmin = Akun::create([
+            'username' => 'superadmin-a',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->get('/admin/tampilan-branding?tab=roles')
+            ->assertOk()
+            ->assertSee('Anggota')
+            ->assertSee('Tidak memiliki akses Web Admin');
+
+        $dashboardPrivilege = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->firstOrFail();
+        $this->post(route('admin.settings.roles.simpan'), [
+            'role_id' => $memberRole->role_id,
+            'privilege_ids' => [$dashboardPrivilege->privilege_id],
+        ])->assertRedirect();
+
+        $this->assertFalse($memberRole->fresh()->hasPrivilege('lihat_dashboard'));
+    }
+
+    public function test_migration_assigns_unmapped_accounts_to_anggota_and_preserves_super_admin()
+    {
+        $unmappedPegawai = Pegawai::create([
+            'nip' => 'NO-ROLE-A',
+            'nama_pegawai' => 'No Role A',
+            'email' => 'no-role-a@test.com',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        $unmappedAccount = Akun::create([
+            'username' => 'no-role-a',
+            'password' => bcrypt('password'),
+            'role' => '',
+            'role_id' => null,
+            'pegawai_id' => $unmappedPegawai->pegawai_id,
+        ]);
+
+        $superAdminPegawai = Pegawai::create([
+            'nip' => 'SUPER-ADMIN-A',
+            'nama_pegawai' => 'Legacy Super Admin',
+            'email' => 'legacy-super-admin-a@test.com',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        $legacySuperAdmin = Akun::create([
+            'username' => 'legacy-super-admin-a',
+            'password' => bcrypt('password'),
+            'role' => 'Super Admin',
+            'role_id' => null,
+            'pegawai_id' => $superAdminPegawai->pegawai_id,
+        ]);
+
+        $migration = require database_path('migrations/2026_09_29_000002_create_member_role_and_assign_unmapped_accounts.php');
+        $migration->up();
+
+        $unmappedAccount->refresh();
+        $legacySuperAdmin->refresh();
+
+        $this->assertSame('Anggota', $unmappedAccount->role);
+        $this->assertNotNull($unmappedAccount->role_id);
+        $this->assertSame('Super Admin', $legacySuperAdmin->role);
+        $this->assertNull($legacySuperAdmin->role_id);
+    }
+
     // 6. Fake Super Admin role string cannot bypass role_id.
     public function test_fake_super_admin_string_cannot_bypass_role_id()
     {
