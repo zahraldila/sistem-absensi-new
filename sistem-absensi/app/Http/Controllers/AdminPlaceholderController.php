@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Helpers\OrganizationHelper;
 
@@ -150,12 +151,17 @@ class AdminPlaceholderController extends Controller
                 ])
                 ->with('success', "Hak akses untuk role \"{$role->nama_role}\" berhasil diperbarui.");
         } catch (\Exception $e) {
+            Log::error('Gagal menyimpan hak akses role: ' . $e->getMessage(), [
+                'exception' => $e,
+                'role_id' => $request->role_id,
+            ]);
+
             return redirect()
                 ->route('admin.tampilan-branding', [
                     'tab' => 'roles',
                     'role_id' => $request->role_id,
                 ])
-                ->with('error', 'Gagal menyimpan hak akses: ' . $e->getMessage());
+                ->with('error', 'Gagal menyimpan hak akses role. Silakan periksa kembali atau hubungi administrator.');
         }
     }
 
@@ -207,12 +213,17 @@ class AdminPlaceholderController extends Controller
                 ])
                 ->with('success', "Role master \"{$role->nama_role}\" berhasil ditambahkan. Silakan atur hak akses privilege untuk role ini.");
         } catch (\Exception $e) {
+            Log::error('Gagal menambahkan role baru: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => $request->except(['_token']),
+            ]);
+
             return redirect()
                 ->route('admin.tampilan-branding', [
                     'tab' => 'roles',
                 ])
                 ->withInput()
-                ->with('error', 'Gagal menambahkan role: ' . $e->getMessage());
+                ->with('error', 'Gagal menambahkan role baru. Silakan coba beberapa saat lagi.');
         }
     }
 
@@ -280,9 +291,14 @@ class AdminPlaceholderController extends Controller
                 ->route('admin.tampilan-branding', ['tab' => 'roles'])
                 ->with('success', "Role \"{$namaRole}\" berhasil dihapus.");
         } catch (\Exception $e) {
+            Log::error('Gagal menghapus role: ' . $e->getMessage(), [
+                'exception' => $e,
+                'role_id' => $id,
+            ]);
+
             return redirect()
                 ->route('admin.tampilan-branding', ['tab' => 'roles'])
-                ->with('error', 'Gagal menghapus role: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus role. Silakan coba beberapa saat lagi.');
         }
     }
 
@@ -381,51 +397,78 @@ class AdminPlaceholderController extends Controller
 
     public function simpanLokasi(Request $request)
     {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'lokasi_id'     => 'nullable|integer',
-            'nama_kantor'   => 'required|string|max:100',
-            'latitude'      => 'required|numeric',
-            'longitude'     => 'required|numeric',
-            'radius_meter'  => 'required|integer|min:1',
+            'nama_kantor'   => 'required|string|min:2|max:100',
+            'latitude'      => 'required|numeric|between:-90,90',
+            'longitude'     => 'required|numeric|between:-180,180',
+            'radius_meter'  => 'required|integer|min:1|max:50000',
+        ], [
+            'nama_kantor.required'  => 'Nama kantor cabang wajib diisi.',
+            'nama_kantor.min'       => 'Nama kantor cabang minimal 2 karakter.',
+            'nama_kantor.max'       => 'Nama kantor cabang maksimal 100 karakter.',
+            'latitude.required'     => 'Latitude koordinat wajib diisi.',
+            'latitude.numeric'      => 'Latitude harus berupa angka desimal koordinat.',
+            'latitude.between'      => 'Latitude harus berada dalam rentang -90 sampai 90 derajat.',
+            'longitude.required'    => 'Longitude koordinat wajib diisi.',
+            'longitude.numeric'     => 'Longitude harus berupa angka desimal koordinat.',
+            'longitude.between'     => 'Longitude harus berada dalam rentang -180 sampai 180 derajat.',
+            'radius_meter.required' => 'Radius presensi wajib diisi.',
+            'radius_meter.integer'  => 'Radius presensi harus berupa angka bulat dalam meter.',
+            'radius_meter.min'      => 'Radius presensi minimal 1 meter.',
+            'radius_meter.max'      => 'Radius presensi maksimal 50.000 meter.',
         ]);
 
-        $lokasiId = $request->input('lokasi_id');
-        $namaKantor = $request->input('nama_kantor');
-        $latitude = (float) $request->input('latitude');
-        $longitude = (float) $request->input('longitude');
-        $radiusMeter = (int) $request->input('radius_meter');
+        if ($validator->fails()) {
+            return redirect()
+                ->route('admin.tampilan-branding', ['tab' => 'lokasi'])
+                ->withErrors($validator, 'lokasi_kantor')
+                ->withInput()
+                ->with('error', $validator->errors()->first());
+        }
 
         try {
             $orgId = OrganizationHelper::requireActiveOrganization();
             
+            $lokasiId = $request->input('lokasi_id');
+            $namaKantor = trim($request->input('nama_kantor'));
+            $latitude = (float) $request->input('latitude');
+            $longitude = (float) $request->input('longitude');
+            $radiusMeter = (int) $request->input('radius_meter');
+
             if ($lokasiId) {
                 // Update existing location
-                DB::table('lokasi_kantor')
-                    ->where('organization_id', $orgId)
+                $lokasi = \App\Models\WorkLocation::where('organization_id', $orgId)
                     ->where('lokasi_id', $lokasiId)
-                    ->update([
-                        'nama_kantor'  => $namaKantor,
-                        'latitude'     => $latitude,
-                        'longitude'    => $longitude,
-                        'radius_meter' => $radiusMeter,
-                    ]);
+                    ->first();
+
+                if (!$lokasi) {
+                    return redirect()
+                        ->route('admin.tampilan-branding', ['tab' => 'lokasi'])
+                        ->with('error', 'Data kantor cabang tidak ditemukan atau bukan milik organisasi Anda.');
+                }
+
+                $lokasi->update([
+                    'nama_kantor'  => $namaKantor,
+                    'latitude'     => $latitude,
+                    'longitude'    => $longitude,
+                    'radius_meter' => $radiusMeter,
+                ]);
 
                 $pesan = "Kantor cabang '{$namaKantor}' berhasil diperbarui.";
             } else {
-                // Insert new location
-                $lokasiId = DB::table('lokasi_kantor')
-                    ->insertGetId([
-                        'organization_id' => $orgId,
-                        'nama_kantor'  => $namaKantor,
-                        'latitude'     => $latitude,
-                        'longitude'    => $longitude,
-                        'radius_meter' => $radiusMeter,
-                    ], 'lokasi_id');
+                // Insert new location via Eloquent to ensure timestamps
+                $lokasi = \App\Models\WorkLocation::create([
+                    'organization_id' => $orgId,
+                    'nama_kantor'     => $namaKantor,
+                    'latitude'        => $latitude,
+                    'longitude'       => $longitude,
+                    'radius_meter'    => $radiusMeter,
+                ]);
 
+                $lokasiId = $lokasi->lokasi_id;
                 $pesan = "Kantor cabang '{$namaKantor}' berhasil ditambahkan.";
             }
-
-
 
             // Audit log with integer akun_id
             $user = Auth::user();
@@ -438,7 +481,15 @@ class AdminPlaceholderController extends Controller
 
             return redirect()->route('admin.tampilan-branding', ['tab' => 'lokasi'])->with('success', $pesan);
         } catch (\Exception $e) {
-            return redirect()->route('admin.tampilan-branding', ['tab' => 'lokasi'])->with('error', 'Gagal menyimpan data kantor cabang: ' . $e->getMessage());
+            Log::error('Gagal menyimpan data kantor cabang: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => $request->except(['_token']),
+            ]);
+
+            return redirect()
+                ->route('admin.tampilan-branding', ['tab' => 'lokasi'])
+                ->withInput()
+                ->with('error', 'Gagal menyimpan data kantor cabang. Silakan periksa kembali input Anda.');
         }
     }
 

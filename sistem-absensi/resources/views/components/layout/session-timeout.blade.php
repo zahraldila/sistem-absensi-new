@@ -12,17 +12,11 @@
 <script>
 (function () {
     var SESSION_TIMEOUT_MS = {{ $sessionTimeoutSeconds }} * 1000;
-    var LOGIN_URL          = '/login';
     var logoutTimer        = null;
 
     function redirectToLogin() {
-        // Submit POST /logout to properly invalidate the server session
-        var form = document.getElementById('_session_timeout_logout_form');
-        if (form) {
-            form.submit();
-        } else {
-            window.location.href = '/login';
-        }
+        // Redirect langsung ke halaman login (tanpa submit form CSRF yang sudah kedaluwarsa)
+        window.location.href = '{{ route('login') }}';
     }
 
     function scheduleTimer() {
@@ -46,8 +40,3 @@
     scheduleTimer();
 })();
 </script>
-
-{{-- Hidden form untuk POST /logout (invalidate session di server) --}}
-<form id="_session_timeout_logout_form" method="POST" action="{{ route('logout') }}" style="display:none;">
-    @csrf
-</form>

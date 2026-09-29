@@ -27,6 +27,43 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
 
+        // ── Session expired / CSRF token mismatch ──────────────────────
+        // Catches: 419 Page Expired errors when session expires.
+        // Redirects users gracefully to login page with clear feedback.
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, Request $request) {
+            $message = 'Sesi Anda telah berakhir. Silakan login kembali.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                    'error'   => 'session_expired',
+                ], 419);
+            }
+
+            return redirect()->route('login')
+                ->with('error', $message)
+                ->withErrors(['message' => $message]);
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, Request $request) {
+            if ($e->getStatusCode() === 419) {
+                $message = 'Sesi Anda telah berakhir. Silakan login kembali.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                        'error'   => 'session_expired',
+                    ], 419);
+                }
+
+                return redirect()->route('login')
+                    ->with('error', $message)
+                    ->withErrors(['message' => $message]);
+            }
+
+            return null;
+        });
+
         // ── Database connection errors ─────────────────────────────────
         // Catches: DNS failure, host unreachable, connection refused,
         // SSL handshake errors, etc. — anything that prevents reaching DB.

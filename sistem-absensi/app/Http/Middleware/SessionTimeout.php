@@ -22,7 +22,18 @@ class SessionTimeout
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                return redirect('/login')->withErrors(['message' => 'Sesi Anda telah berakhir. Silakan login kembali.']);
+                $message = 'Sesi Anda telah berakhir. Silakan login kembali.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                        'error'   => 'session_expired',
+                    ], 401);
+                }
+
+                return redirect()->route('login')
+                    ->with('error', $message)
+                    ->withErrors(['message' => $message]);
             }
 
             Session::put('lastActivityTime', $now);

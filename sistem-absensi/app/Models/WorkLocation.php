@@ -11,7 +11,7 @@ class WorkLocation extends Model
     protected $primaryKey = 'lokasi_id';
     public $incrementing = true;
     protected $keyType = 'int';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'nama_kantor',
