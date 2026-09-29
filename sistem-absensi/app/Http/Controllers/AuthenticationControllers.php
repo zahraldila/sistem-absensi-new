@@ -106,8 +106,8 @@ class AuthenticationControllers extends Controller
             // ---------------------------------------------------------
             // INJEKSI LOG ACTIVITY: Mencatat bahwa user berhasil login
             // ---------------------------------------------------------
-            $roleName = ucfirst($akun->role); // Membuat huruf pertama kapital (misal: 'Admin' atau 'Pegawai')
-            logHelpers::record($akun->akun_id, "{$roleName} berhasil login ke dalam sistem");
+            $actorName = $pegawai?->nama_pegawai ?: $akun->username;
+            logHelpers::record($akun->akun_id, "{$actorName} berhasil login ke dalam sistem");
             // ---------------------------------------------------------
 
             return redirect()->intended(route('admin.dashboard'));
@@ -139,8 +139,9 @@ class AuthenticationControllers extends Controller
             $akunId = Auth::user()->akun_id; 
             // Atau bisa juga menggunakan ID dari session: $request->session()->get('akun_id');
             
-            $roleName = ucfirst(Auth::user()->role);
-            logHelpers::record($akunId, "{$roleName} melakukan logout dari sistem");
+            $akun = Auth::user();
+            $actorName = $akun->pegawai?->nama_pegawai ?: $akun->username;
+            logHelpers::record($akunId, "{$actorName} melakukan logout dari sistem");
         }
         // ---------------------------------------------------------
 

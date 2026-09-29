@@ -253,6 +253,31 @@ class SecurityTest extends TestCase
         $this->assertFalse($memberRole->fresh()->hasPrivilege('lihat_dashboard'));
     }
 
+    public function test_audit_log_uses_actor_name_for_login_activity_and_actual_role_column()
+    {
+        \Illuminate\Support\Facades\DB::table('audit_log')->insert([
+            'akun_id' => $this->hrUserA->id,
+            'aktivitas' => 'HR berhasil login ke dalam sistem',
+            'waktu_log' => now(),
+        ]);
+
+        $superAdmin = Akun::create([
+            'username' => 'audit-viewer',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $response = $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->get('/admin/log-aktivitas');
+
+        $response->assertOk()
+            ->assertSee('HR A berhasil login ke dalam sistem')
+            ->assertSee('HR', false)
+            ->assertDontSee('HR berhasil login ke dalam sistem');
+    }
+
     public function test_migration_assigns_unmapped_accounts_to_anggota_and_preserves_super_admin()
     {
         $unmappedPegawai = Pegawai::create([

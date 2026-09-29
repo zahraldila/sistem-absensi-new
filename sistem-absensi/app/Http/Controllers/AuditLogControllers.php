@@ -56,11 +56,32 @@ class AuditLogControllers extends Controller
                 'audit_log.waktu_log',
                 'akun.username',
                 'akun.role',
+                'access_role.nama_role as access_role',
                 'pegawai.nama_pegawai'
             )
+            ->leftJoin('role as access_role', 'akun.role_id', '=', 'access_role.role_id')
             ->where('pegawai.organization_id', $orgId);
         
         $logs = $query->orderBy('audit_log.waktu_log', 'desc')->paginate(15);
+        $logs->getCollection()->transform(function ($log) {
+            $actorName = trim((string) ($log->nama_pegawai ?? '')) ?: $log->username;
+            $activity = $log->aktivitas;
+
+            foreach ([
+                ' berhasil login ke dalam sistem',
+                ' melakukan logout dari sistem',
+            ] as $suffix) {
+                if (str_ends_with($activity, $suffix)) {
+                    $activity = $actorName . $suffix;
+                    break;
+                }
+            }
+
+            $log->aktivitas_display = $activity;
+            $log->access_role_display = $log->access_role ?: ($log->role ?: 'Tanpa Role');
+
+            return $log;
+        });
 
         $totalPegawaiQuery = Pegawai::whereDoesntHave('akun', function ($query) {
             $query->whereRaw('LOWER(role) = ?', ['admin']);

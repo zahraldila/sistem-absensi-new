@@ -83,16 +83,12 @@
                                 <h3 class="truncate text-sm font-bold text-slate-900">{{ $log->nama_pegawai ?? $log->username }}</h3>
                             </div>
                             <div class="flex-shrink-0">
-                                @if(strtolower($log->role) == 'admin')
-                                    <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-primary">Admin</span>
-                                @else
-                                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">Pegawai</span>
-                                @endif
+                                <span class="rounded-full {{ strtolower($log->access_role_display) === 'admin' ? 'bg-blue-50 text-primary' : 'bg-slate-100 text-slate-600' }} px-2.5 py-0.5 text-xs font-semibold">{{ $log->access_role_display }}</span>
                             </div>
                         </div>
 
                         <p class="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-                            {{ $log->aktivitas }}
+                            {{ $log->aktivitas_display }}
                         </p>
 
                         <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-slate-100">
@@ -107,7 +103,6 @@
                 @endforelse
             </div>
 
-            {{-- 3b. Desktop & Tablet Table View (Tampil di Layar Tablet/Desktop >= 640px) --}}
             <div class="hidden sm:block rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 <div class="overflow-x-auto w-full">
                     <table class="w-full min-w-[650px] divide-y divide-gray-200 text-left text-sm">
@@ -134,14 +129,10 @@
                                         {{ $log->nama_pegawai ?? $log->username }}
                                     </td>
                                     <td class="whitespace-nowrap px-5 py-3.5 text-sm">
-                                        @if(strtolower($log->role) == 'admin')
-                                            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-primary">Admin</span>
-                                        @else
-                                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Pegawai</span>
-                                        @endif
+                                        <span class="rounded-full {{ strtolower($log->access_role_display) === 'admin' ? 'bg-blue-50 text-primary' : 'bg-gray-100 text-gray-600' }} px-2 py-1 text-xs font-semibold">{{ $log->access_role_display }}</span>
                                     </td>
                                     <td class="px-5 py-3.5 text-sm text-gray-700">
-                                        {{ $log->aktivitas }}
+                                        {{ $log->aktivitas_display }}
                                     </td>
                                 </tr>
                             @empty
