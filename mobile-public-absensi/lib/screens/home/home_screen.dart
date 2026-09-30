@@ -601,20 +601,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const Divider(height: 1, color: Color(0xFFE2E8F0)),
                   const SizedBox(height: 16),
 
-                  // Opsi 1: Ganti Cabang
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.domain_rounded, color: Color(0xFF475569)),
-                    title: const Text('Ganti Lokasi Cabang', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                    subtitle: const Text('Pilih kantor cabang lain untuk perangkat ini', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {
-                      Navigator.pop(dialogCtx);
-                      setState(() {
-                        _selectedLocation = null;
-                      });
-                    },
-                  ),
+                  if (_locations.isNotEmpty)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.domain_rounded, color: Color(0xFF475569)),
+                      title: const Text('Ganti Lokasi Cabang', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      subtitle: const Text('Pilih kantor cabang lain untuk perangkat ini', style: TextStyle(fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        Navigator.pop(dialogCtx);
+                        setState(() {
+                          _selectedLocation = null;
+                        });
+                      },
+                    ),
 
                   // Opsi 2: Sinkronkan Ulang Branding
                   ListTile(
@@ -1099,16 +1099,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      LocationPickerBadge(
-                        locations: _locations,
-                        selectedLocation: _selectedLocation,
-                        primaryColor: _primaryColor,
-                        onLocationChanged: (newLoc) {
-                          setState(() => _selectedLocation = newLoc);
-                          DeviceContextService.saveSelectedLocationId(newLoc.id);
-                        },
-                      ),
-                      const SizedBox(width: 6),
+                      if (_locations.isNotEmpty) ...[
+                        LocationPickerBadge(
+                          locations: _locations,
+                          selectedLocation: _selectedLocation,
+                          primaryColor: _primaryColor,
+                          onLocationChanged: (newLoc) {
+                            setState(() => _selectedLocation = newLoc);
+                            DeviceContextService.saveSelectedLocationId(newLoc.id);
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       // Tombol Pengaturan Admin Perangkat
                       InkWell(
                         onTap: _showAdminSettingsModal,
