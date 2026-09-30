@@ -45,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Daftar Cabang / Lokasi Kantor Dinamis (terisolasi per organisasi)
   List<OfficeLocation> _locations = [];
   OfficeLocation? _selectedLocation;
+  bool _isLoadingLocations = false;
   StreamSubscription<List<OfficeLocation>>? _locationSubscription;
   bool _isOnline = true;
   StreamSubscription<bool>? _networkSubscription;
@@ -99,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         _isConfigured = true;
+        _isLoadingLocations = true;
         _isCheckingConfig = false;
         _organizationId = orgId;
         _organizationCode = orgCode;
@@ -124,6 +126,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _onActivationSuccess(OrganizationInfo info) {
     setState(() {
       _isConfigured = true;
+      _isLoadingLocations = true;
       _organizationId = info.id;
       _organizationCode = info.code;
       _companyName = info.name;
@@ -186,7 +189,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadLocations({int? initialSelectedId}) async {
-    if (_organizationId == null) return;
+    if (_organizationId == null) {
+      if (mounted) {
+        setState(() => _isLoadingLocations = false);
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isLoadingLocations = true);
+    }
 
     final locs = await _attendanceService.fetchLocations(
       organizationId: _organizationId,
@@ -195,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         _locations = locs;
+        _isLoadingLocations = false;
         if (initialSelectedId != null) {
           _selectedLocation = locs.cast<OfficeLocation?>().firstWhere(
                 (l) => l?.id == initialSelectedId,
@@ -1043,7 +1056,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     // 2. TAMPILAN PEMILIHAN CABANG: Jika lokasi cabang belum dipilih
-    if (_selectedLocation == null) {
+    if ((_isLoadingLocations && _locations.isEmpty) ||
+      (_locations.isNotEmpty && _selectedLocation == null)) {
       return BranchSelectionView(
         companyName: _companyName,
         logoUrl: _logoUrl,
