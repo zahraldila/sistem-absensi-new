@@ -1,6 +1,6 @@
 @extends('layouts.admin.app')
 
-@section('title', 'Dashboard Kehadiran Pegawai')
+@section('title', 'Dashboard Kehadiran Anggota')
 
 @section('content')
 
@@ -18,11 +18,11 @@
         <div>
 
             <h1 class="text-2xl sm:text-3xl lg:text-[34px] font-bold text-slate-900 leading-tight">
-                Dashboard Kehadiran Pegawai
+                Dashboard Kehadiran Anggota
             </h1>
 
             <p class="mt-1.5 sm:mt-2 text-sm sm:text-[15px] text-slate-500">
-                Monitoring kehadiran pegawai secara real-time.
+                Monitoring kehadiran anggota secara real-time.
             </p>
 
         </div>
@@ -132,7 +132,7 @@
 
             <div class="flex items-start justify-between">
                 <p class="text-sm font-medium text-blue-600">
-                    Total Pegawai
+                    Total Anggota
                 </p>
                 <div class="text-blue-500">
                     <i class="fa-solid fa-users fa-lg"></i>
@@ -144,7 +144,7 @@
                     {{ $totalPegawai }}
                 </h2>
                 <p class="mt-2 text-xs font-medium text-blue-400">
-                    Total pegawai aktif
+                    Total anggota aktif
                 </p>
             </div>
 
@@ -167,7 +167,7 @@
                     {{ $hadirHariIni }}
                 </h2>
                 <p class="mt-2 text-xs font-medium text-green-500">
-                    Pegawai sudah check in
+                    Anggota sudah check in
                 </p>
             </div>
 

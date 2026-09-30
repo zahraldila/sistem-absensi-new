@@ -46,7 +46,7 @@ class EmployeeManagementService
         return $rows->values()->map(function ($pegawai, $index) {
             return [
                 'No' => $index + 1,
-                'Nama Pegawai' => $pegawai->nama_pegawai,
+                'Nama Anggota' => $pegawai->nama_pegawai,
                 'NIP' => $pegawai->nip ?? '',
                 'Employee ID' => $pegawai->pegawai_id ?? '',
                 'Divisi' => $pegawai->masterDivisi->nama_divisi ?? '',
@@ -65,7 +65,7 @@ class EmployeeManagementService
         return $rows->values()->map(function ($pegawai, $index) {
             return [
                 'No' => $index + 1,
-                'Nama Pegawai' => $pegawai->nama_pegawai,
+                'Nama Anggota' => $pegawai->nama_pegawai,
                 'NIP' => $pegawai->nip ?? '',
                 'Employee ID' => $pegawai->pegawai_id ?? '',
                 'Email' => $pegawai->email ?? '',
@@ -137,7 +137,7 @@ class EmployeeManagementService
         $exportRows = $this->buildExportRows($rows)->map(function ($row) {
             return [
                 'No' => $row['No'],
-                'Nama Pegawai' => $row['Nama Pegawai'],
+                'Nama Anggota' => $row['Nama Anggota'],
                 'NIP' => $row['NIP'],
                 'Employee ID' => $row['Employee ID'],
                 'Divisi' => $row['Divisi'] ?? $row['Department/Divisi'] ?? '',
@@ -358,7 +358,7 @@ class EmployeeManagementService
             $this->repository->updateAccount($pegawai->akun, $akunUpdate);
         } else {
             // Jika pegawai belum memiliki data akun (misal data legacy/import), buat akun baru
-            $roleData = $this->resolveRoleData($data['role_id'] ?? $data['role'] ?? 'Pegawai');
+            $roleData = $this->resolveRoleData($data['role_id'] ?? $data['role'] ?? 'Anggota');
             $username = trim($data['username'] ?? '') !== '' ? trim($data['username']) : $this->buildUsername($pegawai);
 
             $akunData = [

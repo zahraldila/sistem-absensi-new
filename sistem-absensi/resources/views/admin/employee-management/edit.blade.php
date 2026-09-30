@@ -3,8 +3,8 @@
 @section('content')
 <div class="p-6">
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">Edit Akun Karyawan</h1>
-        <p class="text-sm text-gray-600">Perbarui detail akun dan data pegawai.</p>
+        <h1 class="text-2xl font-semibold text-gray-900">Edit Akun Anggota</h1>
+        <p class="text-sm text-gray-600">Perbarui detail akun dan data anggota.</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -12,7 +12,7 @@
             @csrf
             @method('PUT')
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Nama Pegawai</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Nama Anggota</label>
                 <input type="text" name="nama_pegawai" value="{{ old('nama_pegawai', $employee->nama_pegawai) }}" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
             </div>
             <div>
@@ -62,7 +62,7 @@
                 @php
                     $currentRole = old('role', $employee->akun->roleAkses->nama_role ?? 'Anggota');
                     if (strtolower($currentRole) === 'admin') $currentRole = 'Admin';
-                    elseif (strtolower($currentRole) === 'pegawai' || strtolower($currentRole) === 'karyawan') $currentRole = 'Pegawai';
+                    elseif (strtolower($currentRole) === 'pegawai' || strtolower($currentRole) === 'karyawan') $currentRole = 'Anggota';
                     elseif (strtolower($currentRole) === 'hr' || strtolower($currentRole) === 'hrd' || strtolower($currentRole) === 'hr / hrd') $currentRole = 'HR / HRD';
                     elseif (strtolower($currentRole) === 'direktur') $currentRole = 'Direktur';
                 @endphp

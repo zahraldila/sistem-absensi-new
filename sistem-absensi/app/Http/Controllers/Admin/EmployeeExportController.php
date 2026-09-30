@@ -58,7 +58,7 @@ class EmployeeExportController extends Controller
     
             logHelpers::record(
                 $user->akun_id,
-                "Mengekspor data pegawai ke {$formatLabel}"
+                "Mengekspor data anggota ke {$formatLabel}"
             );
         }
     

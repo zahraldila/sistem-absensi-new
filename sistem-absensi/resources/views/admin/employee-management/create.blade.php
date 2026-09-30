@@ -3,15 +3,15 @@
 @section('content')
 <div class="p-6">
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">Tambah Akun Karyawan</h1>
-        <p class="text-sm text-gray-600">Buat akun baru untuk pegawai yang akan menggunakan sistem.</p>
+        <h1 class="text-2xl font-semibold text-gray-900">Tambah Akun Anggota</h1>
+        <p class="text-sm text-gray-600">Buat akun baru untuk anggota yang akan menggunakan sistem.</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <form method="POST" action="{{ route('admin.employee-management.store') }}" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-2">
             @csrf
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Nama Pegawai</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Nama Anggota</label>
                 <input type="text" name="nama_pegawai" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
             </div>
             <div>
