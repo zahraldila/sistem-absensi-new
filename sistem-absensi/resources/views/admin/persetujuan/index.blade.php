@@ -23,7 +23,7 @@
                 </h1>
 
                 <p class="text-xs sm:text-[15px] text-slate-500">
-                    Pengelolaan Izin, Sakit, WFH, WFC, dan Dinas Pegawai
+                    Pengelolaan izin, sakit, WFH, WFC, dan dinas anggota
                 </p>
             </div>
 
@@ -292,7 +292,7 @@
                 <div class="grid gap-5 sm:gap-6 grid-cols-1 lg:grid-cols-[180px_1fr] items-center">
                     <div class="flex flex-col items-center justify-center text-center">
                         <template x-if="detailData.foto_profile">
-                            <img :src="detailData.foto_profile" alt="Foto Pegawai" class="mx-auto h-24 w-24 sm:h-28 sm:w-28 rounded-full object-cover shadow-md border-2 border-white" />
+                            <img :src="detailData.foto_profile" alt="Foto Anggota" class="mx-auto h-24 w-24 sm:h-28 sm:w-28 rounded-full object-cover shadow-md border-2 border-white" />
                         </template>
                         <template x-if="!detailData.foto_profile">
                             <div class="mx-auto flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-full bg-slate-100 text-2xl sm:text-3xl font-semibold text-slate-700 border border-slate-200" x-text="detailInitials()"></div>
@@ -485,7 +485,7 @@
                 <div class="flex items-start justify-between border-b border-slate-200 px-5 sm:px-6 py-4">
                     <div>
                         <h2 class="text-lg sm:text-xl font-bold text-slate-900">Tambah Catatan Absensi</h2>
-                        <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Catat pengajuan absensi (WFH, WFC, Sakit, Izin, Cuti, Dinas, dll) atas nama pegawai.</p>
+                        <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Catat pengajuan absensi (WFH, WFC, sakit, izin, cuti, dinas, dll) atas nama anggota.</p>
                     </div>
                     <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 shrink-0 ml-4"
                         @click="closeCreateModal()" aria-label="Tutup modal">
@@ -517,7 +517,7 @@
                     @endif
 
                     <div class="px-5 sm:px-6 py-5 space-y-4">
-                        {{-- Pegawai --}}
+                        {{-- Anggota --}}
                         <div>
                             @php
                                 $createPegawaiOptions = isset($pegawaiOptions) 
@@ -528,10 +528,10 @@
                             @endphp
                             <x-forms.searchable-select 
                                 name="pegawai_id" 
-                                label="Pegawai *" 
-                                placeholder="Pilih Pegawai..."
-                                searchPlaceholder="Cari pegawai..."
-                                notFoundText="Pegawai tidak ditemukan"
+                                label="Anggota *"
+                                placeholder="Pilih Anggota..."
+                                searchPlaceholder="Cari anggota..."
+                                notFoundText="Anggota tidak ditemukan"
                                 :showPlaceholderOption="false"
                                 :options="$createPegawaiOptions" 
                                 selected="{{ old('pegawai_id') }}" 
@@ -805,7 +805,7 @@
                                 return ['value' => $p->pegawai_id, 'text' => $p->nama_pegawai];
                             })->toArray();
                         @endphp
-                        <x-forms.searchable-select name="pegawai_id" label="Pegawai" :options="$pegawaiOptions" />
+                        <x-forms.searchable-select name="pegawai_id" label="Anggota" :options="$pegawaiOptions" />
                     </div>
                 </div>
 

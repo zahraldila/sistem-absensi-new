@@ -390,7 +390,7 @@ class AttendanceReportController extends Controller
         if ($request->query('status') === 'Tidak Hadir') {
             $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) {
                 return [
-                    'Nama Karyawan' => $attendance->pegawai?->nama_pegawai ?? '-',
+                    'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
                     'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
                     'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
                     'Jam Masuk' => '-',
@@ -417,7 +417,7 @@ class AttendanceReportController extends Controller
                         }
                     }
                     return [
-                        'Nama Karyawan' => $attendance->pegawai?->nama_pegawai ?? '-',
+                        'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
                         'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
                         'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
                         'Jam Masuk' => $this->formatTime($attendance->jam_checkin),
@@ -478,7 +478,7 @@ class AttendanceReportController extends Controller
         if ($request->query('status') === 'Tidak Hadir') {
             $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) {
                 return [
-                    'Nama Karyawan' => $attendance->pegawai?->nama_pegawai ?? '-',
+                    'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
                     'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
                     'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
                     'Jam Masuk' => '-',
@@ -505,7 +505,7 @@ class AttendanceReportController extends Controller
                         }
                     }
                     return [
-                        'Nama Karyawan' => $attendance->pegawai?->nama_pegawai ?? '-',
+                        'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
                         'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
                         'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
                         'Jam Masuk' => $this->formatTime($attendance->jam_checkin),

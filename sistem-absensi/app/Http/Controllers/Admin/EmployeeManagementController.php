@@ -78,9 +78,9 @@ class EmployeeManagementController extends Controller
             'nip.required' => 'NIP wajib diisi.',
             'nip.unique' => 'NIP sudah terdaftar.',
             'nip.max' => 'NIP tidak boleh lebih dari 50 karakter.',
-            'nfc_id.unique' => 'UID NFC sudah terdaftar pada pegawai lain.',
+            'nfc_id.unique' => 'UID NFC sudah terdaftar pada anggota lain.',
             'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah digunakan oleh pegawai lain.',
+            'email.unique' => 'Email sudah digunakan oleh anggota lain.',
             'no_handphone.regex' => 'Format nomor handphone tidak valid.',
             'no_handphone.max' => 'Nomor handphone tidak boleh lebih dari 20 karakter.',
             'username.unique' => 'Username sudah digunakan.',
@@ -101,7 +101,7 @@ class EmployeeManagementController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'email' => 'Email atau Username wajib diisi (minimal salah satu) agar pegawai dapat login.',
+                    'email' => 'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.',
                 ]);
         }
 
@@ -117,13 +117,13 @@ class EmployeeManagementController extends Controller
         if ($user && $user->akun_id) {
             logHelpers::record(
                 $user->akun_id,
-                "Menambahkan data pegawai: {$result['pegawai']->nama_pegawai}"
+                "Menambahkan data anggota: {$result['pegawai']->nama_pegawai}"
             );
         }
 
         return redirect()
             ->route('admin.employee-management.index')
-            ->with('success', 'Akun karyawan berhasil ditambahkan.');
+            ->with('success', 'Akun anggota berhasil ditambahkan.');
     }
 
     public function edit(Pegawai $pegawai)
@@ -199,9 +199,9 @@ class EmployeeManagementController extends Controller
             'nama_pegawai.max' => 'Nama lengkap tidak boleh lebih dari 255 karakter.',
             'nip.unique' => 'NIP sudah terdaftar.',
             'nip.max' => 'NIP tidak boleh lebih dari 50 karakter.',
-            'nfc_id.unique' => 'UID NFC sudah terdaftar pada pegawai lain.',
+            'nfc_id.unique' => 'UID NFC sudah terdaftar pada anggota lain.',
             'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah digunakan oleh pegawai lain.',
+            'email.unique' => 'Email sudah digunakan oleh anggota lain.',
             'no_handphone.regex' => 'Format nomor handphone tidak valid.',
             'no_handphone.max' => 'Nomor handphone tidak boleh lebih dari 20 karakter.',
             'username.unique' => 'Username sudah digunakan.',
@@ -222,8 +222,8 @@ class EmployeeManagementController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'email'    => 'Email atau Username wajib diisi (minimal salah satu) agar pegawai dapat login.',
-                    'username' => 'Email atau Username wajib diisi (minimal salah satu) agar pegawai dapat login.',
+                    'email'    => 'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.',
+                    'username' => 'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.',
                 ]);
         }
 
@@ -236,13 +236,13 @@ class EmployeeManagementController extends Controller
         if ($user && $user->akun_id) {
             logHelpers::record(
                 $user->akun_id,
-                "Memperbarui data pegawai: {$result['pegawai']->nama_pegawai}"
+                "Memperbarui data anggota: {$result['pegawai']->nama_pegawai}"
             );
         }
 
         return redirect()
             ->route('admin.employee-management.index')
-            ->with('success', 'Akun karyawan berhasil diperbarui.');
+            ->with('success', 'Akun anggota berhasil diperbarui.');
     }
 
     public function storeDivision(Request $request)

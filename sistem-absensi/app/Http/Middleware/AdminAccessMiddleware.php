@@ -10,9 +10,7 @@ class AdminAccessMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        $role = Auth::user()?->roleAkses;
-
-        if (! $role || ! $role->hasAnyPrivilege()) {
+        if (! Auth::user()?->canAccessWebAdmin()) {
             abort(403, 'Akses ditolak: role Anda tidak memiliki hak akses admin.');
         }
 

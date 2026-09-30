@@ -20,7 +20,7 @@ class AuthenticationControllers extends Controller
      * - Redirect ke dashboard admin
      *
      * @param LoginRequest $request
-     * @return \Illuminate\Http\RedirectResponse
+    * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
      */
     public function login(LoginRequest $request)
     {
@@ -78,6 +78,21 @@ class AuthenticationControllers extends Controller
                     ->onlyInput('email');
             }
 
+            if (! $akun->canAccessWebAdmin()) {
+                $pesanTidakMemilikiAkses = 'Akun ini tidak memiliki akses ke Web Admin. Silakan gunakan akun dengan hak akses Web Admin untuk masuk.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $pesanTidakMemilikiAkses,
+                    ], 403);
+                }
+
+                return back()
+                    ->withErrors(['email' => $pesanTidakMemilikiAkses])
+                    ->onlyInput('email');
+            }
+
             $remember = $request->boolean('remember');
 
             // Login user dengan remember-token DB jika "Ingat Saya" dicentang.
@@ -106,8 +121,8 @@ class AuthenticationControllers extends Controller
             // ---------------------------------------------------------
             // INJEKSI LOG ACTIVITY: Mencatat bahwa user berhasil login
             // ---------------------------------------------------------
-            $roleName = ucfirst($akun->role); // Membuat huruf pertama kapital (misal: 'Admin' atau 'Pegawai')
-            logHelpers::record($akun->akun_id, "{$roleName} berhasil login ke dalam sistem");
+            $actorName = $pegawai?->nama_pegawai ?: $akun->username;
+            logHelpers::record($akun->akun_id, "{$actorName} berhasil login ke dalam sistem");
             // ---------------------------------------------------------
 
             return redirect()->intended(route('admin.dashboard'));
@@ -139,8 +154,9 @@ class AuthenticationControllers extends Controller
             $akunId = Auth::user()->akun_id; 
             // Atau bisa juga menggunakan ID dari session: $request->session()->get('akun_id');
             
-            $roleName = ucfirst(Auth::user()->role);
-            logHelpers::record($akunId, "{$roleName} melakukan logout dari sistem");
+            $akun = Auth::user();
+            $actorName = $akun->pegawai?->nama_pegawai ?: $akun->username;
+            logHelpers::record($akunId, "{$actorName} melakukan logout dari sistem");
         }
         // ---------------------------------------------------------
 

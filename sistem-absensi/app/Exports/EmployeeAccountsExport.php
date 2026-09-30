@@ -25,7 +25,7 @@ class EmployeeAccountsExport implements FromCollection, WithHeadings, ShouldAuto
     {
         return [
             'No',
-            'Nama Pegawai',
+            'Nama Anggota',
             'Employee ID',
             'Department',
             'Role',

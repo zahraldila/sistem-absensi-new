@@ -187,6 +187,79 @@ class SecurityTest extends TestCase
         $this->assertFalse($roleB->hasPrivilege('lihat_dashboard'));
     }
 
+    public function test_new_organization_starts_with_only_unprivileged_member_role()
+    {
+        $superAdmin = Akun::create([
+            'username' => 'org-creator',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.organization.storeNew'), [
+                'nama_organisasi' => 'New Organization',
+                'kode_organisasi' => 'NEWORG',
+            ])
+            ->assertRedirect(route('admin.organization.select'));
+
+        $organization = Organization::where('kode_organisasi', 'NEWORG')->firstOrFail();
+        $roles = Role::where('organization_id', $organization->organization_id)->get();
+
+        $this->assertSame(['Anggota'], $roles->pluck('nama_role')->all());
+        $this->assertFalse($roles->first()->hasAnyPrivilege());
+        $this->assertFalse(Pegawai::where('organization_id', $organization->organization_id)->exists());
+    }
+
+    public function test_role_privilege_update_cannot_target_another_organization_role()
+    {
+        $foreignRole = Role::create([
+            'nama_role' => 'Foreign Role',
+            'organization_id' => $this->orgB->organization_id,
+        ]);
+        $superAdmin = Akun::create([
+            'username' => 'role-scope-check',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+        $dashboardPrivilege = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->firstOrFail();
+
+        $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->post(route('admin.settings.roles.simpan'), [
+                'role_id' => $foreignRole->role_id,
+                'privilege_ids' => [$dashboardPrivilege->privilege_id],
+            ])
+            ->assertSessionHasErrors('role_id');
+
+        $this->assertFalse($foreignRole->fresh()->hasPrivilege('lihat_dashboard'));
+    }
+
+    public function test_new_role_defaults_to_dashboard_privilege_only()
+    {
+        $superAdmin = Akun::create([
+            'username' => 'role-creator',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->post(route('admin.settings.roles.tambah'), [
+                'nama_role' => 'Role Baru',
+            ])
+            ->assertRedirect();
+
+        $role = Role::where('organization_id', $this->orgA->organization_id)
+            ->where('nama_role', 'Role Baru')
+            ->firstOrFail();
+        $dashboardPrivilegeId = \App\Models\Privilege::where('nama_privilege', 'lihat_dashboard')->value('privilege_id');
+
+        $this->assertSame([$dashboardPrivilegeId], $role->privileges()->pluck('privilege.privilege_id')->all());
+    }
+
     public function test_organization_user_cannot_assign_global_super_admin_role()
     {
         $organizationAdminRole = Role::create([
@@ -251,6 +324,75 @@ class SecurityTest extends TestCase
         ])->assertRedirect();
 
         $this->assertFalse($memberRole->fresh()->hasPrivilege('lihat_dashboard'));
+    }
+
+    public function test_member_without_web_privileges_is_rejected_by_login_form()
+    {
+        $memberRole = Role::create([
+            'nama_role' => 'Anggota Login',
+            'organization_id' => $this->orgA->organization_id,
+        ]);
+        Akun::create([
+            'username' => 'member-login',
+            'password' => bcrypt('password'),
+            'role_id' => $memberRole->role_id,
+            'role' => $memberRole->nama_role,
+            'pegawai_id' => $this->hrPegawaiA->pegawai_id,
+        ]);
+
+        $this->from('/login')
+            ->post(route('login.attempt'), [
+                'email' => 'member-login',
+                'password' => 'password',
+            ])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors([
+                'email' => 'Akun ini tidak memiliki akses ke Web Admin. Silakan gunakan akun dengan hak akses Web Admin untuk masuk.',
+            ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_super_admin_can_login_to_web_admin()
+    {
+        $superAdmin = Akun::create([
+            'username' => 'superadmin-login',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $this->post(route('login.attempt'), [
+            'email' => 'superadmin-login',
+            'password' => 'password',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($superAdmin);
+    }
+
+    public function test_audit_log_uses_actor_name_for_login_activity_and_actual_role_column()
+    {
+        \Illuminate\Support\Facades\DB::table('audit_log')->insert([
+            'akun_id' => $this->hrUserA->id,
+            'aktivitas' => 'HR berhasil login ke dalam sistem',
+            'waktu_log' => now(),
+        ]);
+
+        $superAdmin = Akun::create([
+            'username' => 'audit-viewer',
+            'password' => bcrypt('password'),
+            'role_id' => $this->superAdminRole->role_id,
+            'role' => 'Super Admin',
+        ]);
+
+        $response = $this->actingAs($superAdmin)
+            ->withSession(['active_organization_id' => $this->orgA->organization_id])
+            ->get('/admin/log-aktivitas');
+
+        $response->assertOk()
+            ->assertSee('HR A berhasil login ke dalam sistem')
+            ->assertSee('HR', false)
+            ->assertDontSee('HR berhasil login ke dalam sistem');
     }
 
     public function test_migration_assigns_unmapped_accounts_to_anggota_and_preserves_super_admin()

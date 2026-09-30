@@ -1248,7 +1248,7 @@
                     {{-- Default Privilege Info Notice --}}
                     <div class="flex items-start gap-2.5 p-3 rounded-xl bg-blue-50/80 border border-blue-100 text-xs text-blue-800">
                         <i class="fa-solid fa-circle-info text-primary mt-0.5 flex-shrink-0"></i>
-                        <span>Role baru akan memiliki <strong>0 / {{ $daftarPrivilege->flatten()->count() }} Hak Akses</strong> secara default. Anda dapat langsung mencentang dan menyimpan hak akses yang diizinkan setelah role dibuat.</span>
+                        <span>Role baru akan memiliki <strong>1 / {{ $daftarPrivilege->flatten()->count() }} Hak Akses</strong> secara default. Anda dapat langsung mencentang dan menyimpan hak akses yang diizinkan setelah role dibuat.</span>
                     </div>
 
                     {{-- Submit Buttons --}}

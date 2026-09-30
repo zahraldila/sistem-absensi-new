@@ -10,8 +10,8 @@
         <div class="border-b border-slate-200 px-5 sm:px-6 py-4 flex-shrink-0 bg-white">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-lg sm:text-xl font-bold text-slate-900" x-text="isEdit ? 'Edit Pegawai' : 'Tambah Pegawai'">Tambah Pegawai</h2>
-                    <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Isi informasi pegawai untuk membuat atau mengubah akun</p>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900" x-text="isEdit ? 'Edit Anggota' : 'Tambah Anggota'">Tambah Anggota</h2>
+                    <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Isi informasi anggota untuk membuat atau mengubah akun</p>
                 </div>
                 <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                     @click="closeModal()" aria-label="Tutup modal">
@@ -78,7 +78,7 @@
                     {{-- Nama Lengkap --}}
                     <div>
                         <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama Lengkap <span class="text-red-500">*</span></label>
-                        <input type="text" name="nama_pegawai" x-model="form.nama_pegawai" placeholder="Masukkan Nama Lengkap Pegawai"
+                        <input type="text" name="nama_pegawai" x-model="form.nama_pegawai" placeholder="Masukkan Nama Lengkap Anggota"
                             class="w-full rounded-2xl border @error('nama_pegawai') border-red-400 bg-red-50/20 ring-1 ring-red-300 @else border-slate-300 bg-white focus:border-primary focus:ring-1 focus:ring-primary @enderror px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition" />
                         @error('nama_pegawai')
                             <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1.5">
@@ -104,7 +104,7 @@
 
                         <div>
                             <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Kartu NFC (opsional)</label>
-                            <input type="text" name="nfc_id" x-model="form.nfc_id" placeholder="UID NFC Pegawai"
+                            <input type="text" name="nfc_id" x-model="form.nfc_id" placeholder="UID NFC Anggota"
                                 class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary" />
                             @error('nfc_id')
                                 <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1.5">

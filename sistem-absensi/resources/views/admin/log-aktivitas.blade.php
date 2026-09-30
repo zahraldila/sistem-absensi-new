@@ -8,13 +8,13 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">Log Aktivitas</h1>
-            <p class="mt-1 text-xs sm:text-sm text-gray-600">Pantau seluruh aktivitas admin dan karyawan secara real-time.</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-600">Pantau seluruh aktivitas admin dan anggota secara real-time.</p>
         </div>
     </div>
 
     {{-- 2. Statistik Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-5 mb-5 sm:mb-6">
-        {{-- Card 1: Total Pegawai --}}
+        {{-- Card 1: Total Anggota --}}
         <div class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm flex items-center gap-4">
             <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-primary flex-shrink-0">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,7 +22,7 @@
                 </svg>
             </div>
             <div class="min-w-0">
-                <p class="text-xs sm:text-sm font-medium text-gray-500">Total Pegawai</p>
+                <p class="text-xs sm:text-sm font-medium text-gray-500">Total Anggota</p>
                 <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">{{ $totalPegawai }}</h3>
                 <p class="text-[11px] text-gray-400">Total terdaftar di sistem</p>
             </div>
@@ -38,7 +38,7 @@
             <div class="min-w-0">
                 <p class="text-xs sm:text-sm font-medium text-gray-500">Hadir Hari Ini</p>
                 <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">{{ $hadirHariIni }}</h3>
-                <p class="text-[11px] text-gray-400">Pegawai sudah check-in</p>
+                <p class="text-[11px] text-gray-400">Anggota sudah check-in</p>
             </div>
         </div>
 
@@ -83,16 +83,12 @@
                                 <h3 class="truncate text-sm font-bold text-slate-900">{{ $log->nama_pegawai ?? $log->username }}</h3>
                             </div>
                             <div class="flex-shrink-0">
-                                @if(strtolower($log->role) == 'admin')
-                                    <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-primary">Admin</span>
-                                @else
-                                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">Pegawai</span>
-                                @endif
+                                <span class="rounded-full {{ strtolower($log->access_role_display) === 'admin' ? 'bg-blue-50 text-primary' : 'bg-slate-100 text-slate-600' }} px-2.5 py-0.5 text-xs font-semibold">{{ $log->access_role_display }}</span>
                             </div>
                         </div>
 
                         <p class="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-                            {{ $log->aktivitas }}
+                            {{ $log->aktivitas_display }}
                         </p>
 
                         <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-slate-100">
@@ -107,7 +103,6 @@
                 @endforelse
             </div>
 
-            {{-- 3b. Desktop & Tablet Table View (Tampil di Layar Tablet/Desktop >= 640px) --}}
             <div class="hidden sm:block rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 <div class="overflow-x-auto w-full">
                     <table class="w-full min-w-[650px] divide-y divide-gray-200 text-left text-sm">
@@ -134,14 +129,10 @@
                                         {{ $log->nama_pegawai ?? $log->username }}
                                     </td>
                                     <td class="whitespace-nowrap px-5 py-3.5 text-sm">
-                                        @if(strtolower($log->role) == 'admin')
-                                            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-primary">Admin</span>
-                                        @else
-                                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Pegawai</span>
-                                        @endif
+                                        <span class="rounded-full {{ strtolower($log->access_role_display) === 'admin' ? 'bg-blue-50 text-primary' : 'bg-gray-100 text-gray-600' }} px-2 py-1 text-xs font-semibold">{{ $log->access_role_display }}</span>
                                     </td>
                                     <td class="px-5 py-3.5 text-sm text-gray-700">
-                                        {{ $log->aktivitas }}
+                                        {{ $log->aktivitas_display }}
                                     </td>
                                 </tr>
                             @empty
