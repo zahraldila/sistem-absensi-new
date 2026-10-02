@@ -6,28 +6,49 @@
     $canTambahPegawai = $currentRole?->hasPrivilege('tambah_pegawai') ?? false;
     $canEditPegawai   = $currentRole?->hasPrivilege('edit_pegawai') ?? false;
     $canExportPegawai = $currentRole?->hasPrivilege('export_pegawai') ?? false;
+
+    $org = \App\Helpers\OrganizationHelper::active();
+    $hasDivision = $org?->hasFeature('division') ?? false;
+    $hasPosition = $org?->hasFeature('position') ?? false;
+    $memberTerm = \App\Helpers\OrganizationHelper::term('member', 'Anggota');
+    $memberIdTerm = \App\Helpers\OrganizationHelper::term('member_id', 'NIP');
+    $divisionTerm = \App\Helpers\OrganizationHelper::term('division', 'Divisi');
+    $positionTerm = \App\Helpers\OrganizationHelper::term('position', 'Jabatan');
+    $managementTerm = \App\Helpers\OrganizationHelper::term('member_management', 'Manajemen Akun Anggota');
+
+    if ($hasDivision && $hasPosition) {
+        $searchPlaceholder = "Cari nama, {$divisionTerm}, atau {$positionTerm}...";
+    } elseif ($hasDivision) {
+        $searchPlaceholder = "Cari nama atau {$divisionTerm}...";
+    } elseif ($hasPosition) {
+        $searchPlaceholder = "Cari nama atau {$positionTerm}...";
+    } else {
+        $searchPlaceholder = "Cari nama " . strtolower($memberTerm) . "...";
+    }
+
+    $tableColspan = 5 + ($hasDivision ? 1 : 0) + ($hasPosition ? 1 : 0);
 @endphp
 
 <div x-data="employeeModal()" x-init="init()">
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
         <div>
-            <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight">Manajemen Akun Anggota</h1>
-            <p class="mt-1 text-xs sm:text-sm text-gray-600">Kelola akun dan data anggota yang terhubung dengan sistem absensi.</p>
+            <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight">{{ $managementTerm }}</h1>
+            <p class="mt-1 text-xs sm:text-sm text-gray-600">Kelola akun dan data {{ strtolower($memberTerm) }} yang terhubung dengan sistem absensi.</p>
         </div>
         @if($canTambahPegawai)
             <button type="button" @click.prevent="openCreate()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs sm:text-sm font-semibold text-white transition hover:bg-primary-hover flex-shrink-0 shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Tambah Anggota</span>
+                <span>Tambah {{ $memberTerm }}</span>
             </button>
         @else
-            <button type="button" disabled title="Anda tidak memiliki hak akses untuk menambah anggota" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-200 px-4 py-3 text-xs sm:text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none flex-shrink-0 shadow-none">
+            <button type="button" disabled title="Anda tidak memiliki hak akses untuk menambah {{ strtolower($memberTerm) }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-200 px-4 py-3 text-xs sm:text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none flex-shrink-0 shadow-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Tambah Anggota</span>
+                <span>Tambah {{ $memberTerm }}</span>
             </button>
         @endif
     </div>
@@ -74,7 +95,7 @@
         <form method="GET" action="{{ route('admin.employee-management.index') }}">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div class="flex-1">
-                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari Anggota</label>
+                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari {{ $memberTerm }}</label>
                     <div class="relative mt-1">
                         <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-gray-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,7 +105,7 @@
                         <input
                             x-data="{ _t: null }"
                             @input="clearTimeout(_t); _t = setTimeout(() => $el.closest('form').submit(), 400)"
-                            type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari nama, divisi, atau jabatan..." class="w-full rounded-2xl border border-gray-300 bg-white py-2.5 sm:py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+                            type="text" name="search" value="{{ $search ?? '' }}" placeholder="{{ $searchPlaceholder }}" class="w-full rounded-2xl border border-gray-300 bg-white py-2.5 sm:py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                 </div>
 
@@ -97,7 +118,7 @@
                             <span>Export</span>
                         </button>
                     @else
-                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengekspor data anggota" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-100 px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-gray-400 opacity-60 cursor-not-allowed select-none whitespace-nowrap">
+                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengekspor data {{ strtolower($memberTerm) }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-100 px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-gray-400 opacity-60 cursor-not-allowed select-none whitespace-nowrap">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
@@ -133,7 +154,7 @@
                         </div>
                         <div class="min-w-0">
                             <h3 class="truncate text-sm font-bold text-slate-900">{{ $employee->nama_pegawai }}</h3>
-                            <p class="text-xs text-slate-500">NIP: {{ $employee->nip ?? '-' }}</p>
+                            <p class="text-xs text-slate-500">{{ $memberIdTerm }}: {{ $employee->nip ?? '-' }}</p>
                         </div>
                     </div>
                     <div class="flex-shrink-0">
@@ -148,17 +169,23 @@
                 </div>
 
                 {{-- Grid Department & Role --}}
-                <div class="grid grid-cols-2 gap-2.5 text-xs">
-                    <div class="rounded-xl bg-slate-50 p-2.5">
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Divisi</p>
-                        <p class="font-medium text-slate-800 mt-0.5 truncate">{{ $employee->masterDivisi->nama_divisi ?? '-' }}</p>
-                    </div>
+                @if($hasDivision || $hasPosition)
+                    <div class="grid {{ ($hasDivision && $hasPosition) ? 'grid-cols-2' : 'grid-cols-1' }} gap-2.5 text-xs">
+                        @hasfeature('division')
+                        <div class="rounded-xl bg-slate-50 p-2.5">
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">{{ $divisionTerm }}</p>
+                            <p class="font-medium text-slate-800 mt-0.5 truncate">{{ $employee->masterDivisi->nama_divisi ?? '-' }}</p>
+                        </div>
+                        @endhasfeature
 
-                    <div class="rounded-xl bg-slate-50 p-2.5">
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Jabatan</p>
-                        <p class="font-medium text-slate-800 mt-0.5 truncate">{{ $employee->masterJabatan->nama_jabatan ?? '-' }}</p>
+                        @hasfeature('position')
+                        <div class="rounded-xl bg-slate-50 p-2.5">
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">{{ $positionTerm }}</p>
+                            <p class="font-medium text-slate-800 mt-0.5 truncate">{{ $employee->masterJabatan->nama_jabatan ?? '-' }}</p>
+                        </div>
+                        @endhasfeature
                     </div>
-                </div>
+                @endif
 
                 {{-- Action Buttons --}}
                 <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
@@ -207,7 +234,7 @@
                             <span>Edit</span>
                         </button>
                     @else
-                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data anggota"
+                        <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data {{ strtolower($memberTerm) }}"
                                 class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 py-2 text-xs font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none">
                             <i class="fa-solid fa-pen-to-square text-slate-400 text-xs"></i>
                             <span>Edit</span>
@@ -217,7 +244,7 @@
             </div>
         @empty
             <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
-                Belum ada data anggota.
+                Belum ada data {{ strtolower($memberTerm) }}.
             </div>
         @endforelse
     </div>
@@ -232,9 +259,13 @@
                     <tr>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Photo</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Nama</th>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">NIP</th>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Divisi</th>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Jabatan</th>
+                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ $memberIdTerm }}</th>
+                        @hasfeature('division')
+                        <th id="col-header-division" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ $divisionTerm }}</th>
+                        @endhasfeature
+                        @hasfeature('position')
+                        <th id="col-header-position" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ $positionTerm }}</th>
+                        @endhasfeature
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Action</th>
                     </tr>
@@ -261,8 +292,12 @@
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-gray-900">{{ $employee->nama_pegawai }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ $employee->nip ?? '-' }}</td>
+                            @hasfeature('division')
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ $employee->masterDivisi->nama_divisi ?? '-' }}</td>
+                            @endhasfeature
+                            @hasfeature('position')
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ $employee->masterJabatan->nama_jabatan ?? '-' }}</td>
+                            @endhasfeature
                             <td class="whitespace-nowrap px-4 py-3 text-sm">
                                 @php
                                     $statusText = $employee->status ?? 'Aktif';
@@ -291,7 +326,7 @@
                                             'username' => $employee->akun->username ?? '-',
                                         ], JSON_HEX_APOS | JSON_HEX_QUOT) }}"
                                         class="mr-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 shadow-sm"
-                                        aria-label="Lihat detail anggota">
+                                        aria-label="Lihat detail {{ strtolower($memberTerm) }}">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
                                         <circle cx="12" cy="12" r="3" />
@@ -316,16 +351,16 @@
                                                 'role' => $employee->akun->roleAkses->nama_role ?? $employee->akun->role ?? 'Anggota'
                                             ], JSON_HEX_APOS | JSON_HEX_QUOT) }}"
                                             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-primary transition hover:bg-blue-50 shadow-sm"
-                                            aria-label="Edit anggota">
+                                            aria-label="Edit {{ strtolower($memberTerm) }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z" />
                                         </svg>
                                     </button>
                                 @else
-                                    <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data anggota"
+                                    <button type="button" disabled title="Anda tidak memiliki hak akses untuk mengubah data {{ strtolower($memberTerm) }}"
                                             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-300 opacity-60 cursor-not-allowed select-none shadow-none"
-                                            aria-label="Edit anggota dinonaktifkan">
+                                            aria-label="Edit {{ strtolower($memberTerm) }} dinonaktifkan">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -336,7 +371,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada data anggota.</td>
+                            <td colspan="{{ $tableColspan }}" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada data {{ strtolower($memberTerm) }}.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -436,8 +471,8 @@
             {{-- Header --}}
             <div class="border-b border-slate-200 px-5 sm:px-6 py-3.5 flex items-center justify-between">
                 <div>
-                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Detail Anggota</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">Informasi lengkap data anggota dan akun.</p>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Detail {{ $memberTerm }}</h2>
+                    <p class="mt-0.5 text-xs text-slate-500">Informasi lengkap data {{ strtolower($memberTerm) }} dan akun.</p>
                 </div>
                 <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                     @click="closeDetail()" aria-label="Tutup modal">
@@ -452,7 +487,7 @@
                 {{-- Profile Header: Foto di KIRI, Nama & NIP di KANAN --}}
                 <div class="flex items-center gap-3.5 sm:gap-4 bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-100">
                     <template x-if="detailData.foto_profile">
-                        <img :src="detailData.foto_profile" alt="Foto Anggota" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm border-2 border-white flex-shrink-0" x-on:error="detailData.foto_profile = ''" />
+                        <img :src="detailData.foto_profile" alt="Foto {{ $memberTerm }}" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm border-2 border-white flex-shrink-0" x-on:error="detailData.foto_profile = ''" />
                     </template>
                     <template x-if="!detailData.foto_profile">
                         <div class="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-slate-200 text-lg sm:text-xl font-bold text-slate-700 flex-shrink-0 border-2 border-white shadow-sm">
@@ -461,7 +496,7 @@
                     </template>
                     <div class="min-w-0 flex-1">
                         <h3 class="text-base sm:text-lg font-bold text-slate-900 truncate" x-text="detailData.nama_pegawai"></h3>
-                        <p class="text-xs text-slate-500 mt-0.5">NIP: <span class="font-semibold text-slate-700" x-text="detailData.nip || '-'"></span></p>
+                        <p class="text-xs text-slate-500 mt-0.5">{{ $memberIdTerm }}: <span class="font-semibold text-slate-700" x-text="detailData.nip || '-'"></span></p>
                         <div class="mt-1">
                             <span 
                                 :class="(detailData.status && detailData.status.toLowerCase() === 'aktif') 
@@ -476,15 +511,19 @@
 
                 {{-- Detail Grid --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
+                    @hasfeature('division')
                     <div class="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Divisi</p>
+                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">{{ $divisionTerm }}</p>
                         <p class="font-semibold text-slate-800 mt-0.5 truncate" x-text="detailData.divisi_name || '-'"></p>
                     </div>
+                    @endhasfeature
 
+                    @hasfeature('position')
                     <div class="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Jabatan</p>
+                        <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">{{ $positionTerm }}</p>
                         <p class="font-semibold text-slate-800 mt-0.5 truncate" x-text="detailData.jabatan_name || '-'"></p>
                     </div>
+                    @endhasfeature
 
                     <div class="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
                         <p class="text-slate-400 text-[10px] sm:text-[11px] uppercase font-semibold">Email</p>
@@ -514,13 +553,14 @@
     @include('admin.employee-management._employee-form-modal')
     @include('admin.employee-management._export-modal')
 
+    @hasfeature('division')
     <div x-show="divisionModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" @click.self="closeDivisionModal()">
         <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl sm:rounded-[24px] bg-white shadow-[0_35px_100px_rgba(15,23,42,0.16)] ring-1 ring-slate-200" @click.stop>
             <div class="border-b border-slate-200 px-5 sm:px-6 py-4">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Tambah Divisi</h2>
-                        <p class="mt-1 text-xs sm:text-sm text-slate-500">Tambahkan divisi baru tanpa meninggalkan halaman ini.</p>
+                        <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Tambah {{ $divisionTerm }}</h2>
+                        <p class="mt-1 text-xs sm:text-sm text-slate-500">Tambahkan {{ strtolower($divisionTerm) }} baru tanpa meninggalkan halaman ini.</p>
                     </div>
                     <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                         @click="closeDivisionModal()" aria-label="Tutup modal">
@@ -533,7 +573,7 @@
             <div class="px-5 sm:px-6 py-5">
                 <div class="space-y-3">
                     <div>
-                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama Divisi</label>
+                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama {{ $divisionTerm }}</label>
                         <input type="text" x-model="newDivisionName" placeholder="Contoh: HR"
                             class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary" />
                         <template x-if="divisionError">
@@ -554,14 +594,16 @@
             </div>
         </div>
     </div>
+    @endhasfeature
 
+    @hasfeature('position')
     <div x-show="roleModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" @click.self="closeRoleModal()">
         <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl sm:rounded-[24px] bg-white shadow-[0_35px_100px_rgba(15,23,42,0.16)] ring-1 ring-slate-200" @click.stop>
             <div class="border-b border-slate-200 px-5 sm:px-6 py-4">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Tambah Jabatan</h2>
-                        <p class="mt-1 text-xs sm:text-sm text-slate-500">Tambahkan jabatan baru tanpa meninggalkan halaman ini.</p>
+                        <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Tambah {{ $positionTerm }}</h2>
+                        <p class="mt-1 text-xs sm:text-sm text-slate-500">Tambahkan {{ strtolower($positionTerm) }} baru tanpa meninggalkan halaman ini.</p>
                     </div>
                     <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                         @click="closeRoleModal()" aria-label="Tutup modal">
@@ -574,7 +616,7 @@
             <div class="px-5 sm:px-6 py-5">
                 <div class="space-y-3">
                     <div>
-                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama Jabatan</label>
+                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama {{ $positionTerm }}</label>
                         <input type="text" x-model="newJabatanName" placeholder="Contoh: Staff IT"
                             class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary" />
                         <template x-if="roleError">
@@ -595,6 +637,7 @@
             </div>
         </div>
     </div>
+    @endhasfeature
 
     <script>
         function employeeModal() {

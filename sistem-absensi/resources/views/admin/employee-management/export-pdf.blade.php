@@ -17,21 +17,31 @@
 </head>
 <body>
     <div class="header">
-        <h1>PT SELADA INDONESIA PRODUKTIF</h1>
-        <h2>LAPORAN MANAJEMEN AKUN</h2>
+        <h1>{{ $organization->name ?? 'SISTEM ABSENSI' }}</h1>
+        <h2>LAPORAN {{ strtoupper(\App\Helpers\OrganizationHelper::term('member_management')) }}</h2>
     </div>
     <table class="filters">
         <tbody>
             <tr>
                 <td><strong>Status</strong></td>
                 <td>{{ $filters['status'] }}</td>
-                <td><strong>Divisi</strong></td>
+                @if(!empty($hasDivision))
+                <td><strong>{{ \App\Helpers\OrganizationHelper::term('division') }}</strong></td>
                 <td>{{ $filters['divisi'] }}</td>
+                @else
+                <td></td>
+                <td></td>
+                @endif
             </tr>
             <tr>
-                <td><strong>Jabatan</strong></td>
+                @if(!empty($hasPosition))
+                <td><strong>{{ \App\Helpers\OrganizationHelper::term('position') }}</strong></td>
                 <td>{{ $filters['role'] }}</td>
-                <td><strong>Anggota</strong></td>
+                @else
+                <td></td>
+                <td></td>
+                @endif
+                <td><strong>{{ \App\Helpers\OrganizationHelper::term('member') }}</strong></td>
                 <td>{{ $filters['pegawai'] }}</td>
             </tr>
         </tbody>
@@ -41,11 +51,14 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                <th style="width: 18%;">Nama Anggota</th>
-                <th style="width: 12%;">NIP</th>
-                <th style="width: 12%;">Employee ID</th>
-                <th style="width: 18%;">Divisi</th>
-                <th style="width: 12%;">Jabatan</th>
+                <th style="width: 20%;">Nama {{ \App\Helpers\OrganizationHelper::term('member') }}</th>
+                <th style="width: 14%;">{{ \App\Helpers\OrganizationHelper::term('member_id') }}</th>
+                @if(!empty($hasDivision))
+                <th style="width: 15%;">{{ \App\Helpers\OrganizationHelper::term('division') }}</th>
+                @endif
+                @if(!empty($hasPosition))
+                <th style="width: 15%;">{{ \App\Helpers\OrganizationHelper::term('position') }}</th>
+                @endif
                 <th style="width: 10%;">Status</th>
                 <th style="width: 18%;">Email</th>
                 <th style="width: 15%;">No Handphone</th>
@@ -57,9 +70,12 @@
                 <td>{{ $row['No'] }}</td>
                 <td>{{ $row['Nama Anggota'] }}</td>
                 <td>{{ $row['NIP'] }}</td>
-                <td>{{ $row['Employee ID'] }}</td>
-                <td>{{ $row['Divisi'] ?? $row['Department'] }}</td>
-                <td>{{ $row['Jabatan'] ?? $row['Role'] }}</td>
+                @if(!empty($hasDivision))
+                <td>{{ $row['Divisi'] ?? '-' }}</td>
+                @endif
+                @if(!empty($hasPosition))
+                <td>{{ $row['Jabatan'] ?? '-' }}</td>
+                @endif
                 <td>{{ $row['Status'] }}</td>
                 <td>{{ $row['Email'] }}</td>
                 <td>{{ $row['No Handphone'] }}</td>

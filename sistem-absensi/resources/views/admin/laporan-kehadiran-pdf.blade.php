@@ -28,12 +28,16 @@
         <thead>
             <tr>
                 <th>Nama</th>
-                <th>Divisi</th>
+                @if($hasDivision ?? true)
+                    <th>Divisi</th>
+                @endif
                 <th>Tanggal</th>
                 <th>Jam Masuk</th>
                 <th>Jam Keluar</th>
                 <th>Durasi</th>
-                <th>Mode</th>
+                @if($hasWfoWfh ?? true)
+                    <th>Mode</th>
+                @endif
                 <th>Lokasi</th>
                 <th>Status</th>
             </tr>
@@ -42,12 +46,16 @@
             @foreach($rows as $row)
                 <tr>
                     <td>{{ $row['nama'] }}</td>
-                    <td>{{ $row['divisi'] }}</td>
+                    @if($hasDivision ?? true)
+                        <td>{{ $row['divisi'] ?? '-' }}</td>
+                    @endif
                     <td>{{ $row['tanggal'] }}</td>
                     <td>{{ $row['jam_masuk'] }}</td>
                     <td>{{ $row['jam_keluar'] }}</td>
                     <td>{{ $row['durasi'] }}</td>
-                    <td>{{ $row['mode'] }}</td>
+                    @if($hasWfoWfh ?? true)
+                        <td>{{ $row['mode'] ?? '-' }}</td>
+                    @endif
                     <td>{{ $row['lokasi'] }}</td>
                     <td>
                         @php

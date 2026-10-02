@@ -22,6 +22,8 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
     public function query(): Builder
     {
         $orgId = $this->filters['organization_id'] ?? OrganizationHelper::getActiveOrganizationId();
+        $org = OrganizationHelper::active();
+        $hasWfoWfh = $org?->hasFeature('wfo_wfh') ?? false;
 
         $query = Approval::query()
             ->with(['pegawai.masterDivisi', 'pegawai.masterJabatan']);
@@ -30,6 +32,10 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
             $query->whereHas('pegawai', function ($q) use ($orgId) {
                 $q->where('organization_id', $orgId);
             });
+        }
+
+        if (!$hasWfoWfh) {
+            $query->whereNotIn('jenis_pengajuan', ['WFH', 'WFC', 'Dinas']);
         }
 
         if (!empty($this->filters['tanggal_awal'])) {
@@ -69,10 +75,14 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
         }
 
         if (!empty($this->filters['jenis_pengajuan']) && $this->filters['jenis_pengajuan'] !== 'Semua') {
-            $query->where(
-                'jenis_pengajuan',
-                $this->filters['jenis_pengajuan']
-            );
+            if (!$hasWfoWfh && in_array($this->filters['jenis_pengajuan'], ['WFH', 'WFC', 'Dinas'], true)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where(
+                    'jenis_pengajuan',
+                    $this->filters['jenis_pengajuan']
+                );
+            }
         }
 
         return $query->orderByDesc('tanggal_pengajuan');
@@ -80,15 +90,26 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
 
     public function headings(): array
     {
-        return [
+        $org = OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $memberTerm = OrganizationHelper::term('member', 'Anggota');
+        $divisionTerm = OrganizationHelper::term('division', 'Divisi');
+
+        $headings = [
             'No',
-            'Nama Anggota',
-            'Divisi',
-            'Jenis Pengajuan',
-            'Tanggal Pengajuan',
-            'Status',
-            'Keterangan',
+            'Nama ' . $memberTerm,
         ];
+
+        if ($hasDivision) {
+            $headings[] = $divisionTerm;
+        }
+
+        $headings[] = 'Jenis Pengajuan';
+        $headings[] = 'Tanggal Pengajuan';
+        $headings[] = 'Status';
+        $headings[] = 'Keterangan';
+
+        return $headings;
     }
 
     public function map($approval): array
@@ -96,6 +117,9 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
         static $no = 0;
 
         $no++;
+
+        $org = OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
 
         $formattedDate = $approval->tanggal_pengajuan;
         if ($formattedDate) {
@@ -112,14 +136,20 @@ class ApprovalExport implements FromQuery, WithHeadings, WithMapping
             ? 'Pending'
             : ($approval->status_pengajuan ?? '-');
 
-        return [
+        $row = [
             $no,
             $approval->pegawai?->nama_pegawai ?? '-',
-            $approval->pegawai?->masterDivisi?->nama_divisi ?? $approval->pegawai?->jabatan ?? '-',
-            $approval->jenis_pengajuan ?? '-',
-            $formattedDate,
-            $statusDisplay,
-            $approval->keterangan ?? '-',
         ];
+
+        if ($hasDivision) {
+            $row[] = $approval->pegawai?->masterDivisi?->nama_divisi ?? $approval->pegawai?->jabatan ?? '-';
+        }
+
+        $row[] = $approval->jenis_pengajuan ?? '-';
+        $row[] = $formattedDate;
+        $row[] = $statusDisplay;
+        $row[] = $approval->keterangan ?? '-';
+
+        return $row;
     }
 }

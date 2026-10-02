@@ -18,10 +18,18 @@ class OrganizationSelectionController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        // Ambil semua organisasi yang aktif
-        $organizations = Organization::where('status', 'active')->get();
+        // Ambil semua organisasi beserta kategori dan fitur terkait
+        $organizations = Organization::with(['category', 'organizationFeatures'])
+            ->orderBy('nama_organisasi')
+            ->get();
 
-        return view('admin.select-organization', compact('organizations'));
+        // Ambil katalog fitur untuk modal Kelola Fitur
+        $allFeatures = \App\Models\Feature::where('status', 'active')
+            ->orderBy('category_group')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.select-organization', compact('organizations', 'allFeatures'));
     }
 
     /**
@@ -56,13 +64,15 @@ class OrganizationSelectionController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        return view('admin.create-organization');
+        $categories = \App\Models\OrganizationCategory::where('status', 'active')->orderBy('name')->get();
+
+        return view('admin.create-organization', compact('categories'));
     }
 
     /**
      * Proses tambah organisasi baru
      */
-    public function storeNew(Request $request)
+    public function storeNew(Request $request, \App\Services\OrganizationProvisioningService $provisioningService)
     {
         if (! Auth::user()->isSuperAdmin()) {
             abort(403, 'Akses ditolak.');
@@ -71,31 +81,23 @@ class OrganizationSelectionController extends Controller
         $request->validate([
             'nama_organisasi' => 'required|string|max:255',
             'kode_organisasi' => 'required|string|max:50|unique:organizations,kode_organisasi',
-            'alamat' => 'nullable|string',
+            'alamat'          => 'nullable|string',
+            'category_id'     => 'nullable|exists:organization_categories,id',
         ], [
             'nama_organisasi.required' => 'Nama organisasi wajib diisi.',
             'kode_organisasi.required' => 'Kode organisasi wajib diisi.',
-            'kode_organisasi.unique' => 'Kode organisasi sudah digunakan, silakan gunakan kode lain.',
+            'kode_organisasi.unique'   => 'Kode organisasi sudah digunakan, silakan gunakan kode lain.',
+            'category_id.exists'       => 'Kategori organisasi yang dipilih tidak valid.',
         ]);
 
-        $organization = Organization::create([
-            'nama_organisasi' => $request->nama_organisasi,
-            'kode_organisasi' => $request->kode_organisasi,
-            'alamat' => $request->alamat,
-            'status' => 'active',
-            'display_token' => (string) \Illuminate\Support\Str::uuid(),
-        ]);
+        $organization = $provisioningService->provision($request->only([
+            'nama_organisasi',
+            'kode_organisasi',
+            'alamat',
+            'category_id',
+        ]));
 
-        $memberRole = \App\Models\Role::firstOrCreate(
-            [
-                'nama_role' => 'Anggota',
-                'organization_id' => $organization->organization_id,
-            ],
-            ['deskripsi' => 'Akun anggota untuk aplikasi mobile dan presensi.']
-        );
-        $memberRole->privileges()->detach();
-
-        return redirect()->route('admin.organization.select')->with('success', 'Organisasi baru berhasil ditambahkan.');
+        return redirect()->route('admin.organization.select')->with('success', 'Organisasi ' . $organization->nama_organisasi . ' berhasil ditambahkan dan fitur telah diprovisioning otomatis.');
     }
 
     /**

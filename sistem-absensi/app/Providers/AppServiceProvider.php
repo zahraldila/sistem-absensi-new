@@ -26,5 +26,24 @@ class AppServiceProvider extends ServiceProvider
         }
 
         \Illuminate\Pagination\Paginator::useTailwind();
+        
+        // Blade Feature Directives
+        \Illuminate\Support\Facades\Blade::if('hasfeature', function (string $featureKey) {
+            $org = \App\Helpers\OrganizationHelper::getActiveOrganization();
+            return $org ? $org->hasFeature($featureKey) : false;
+        });
+
+        \Illuminate\Support\Facades\Blade::if('hasanyfeature', function (array $featureKeys) {
+            $org = \App\Helpers\OrganizationHelper::getActiveOrganization();
+            if (!$org) {
+                return false;
+            }
+            foreach ($featureKeys as $featureKey) {
+                if ($org->hasFeature($featureKey)) {
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 }

@@ -26,7 +26,9 @@
                     @endif
                     <div class="min-w-0">
                         <h3 class="truncate text-sm font-bold text-slate-900">{{ $approval->pegawai?->nama_pegawai ?? '-' }}</h3>
+                        @hasfeature('division')
                         <p class="text-xs text-slate-500">{{ $approval->pegawai?->masterDivisi?->nama_divisi ?? '-' }}</p>
+                        @endhasfeature
                     </div>
                 </div>
                 <div class="flex-shrink-0">
@@ -87,7 +89,7 @@
         <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
             <thead class="bg-gray-50/80">
                 <tr>
-                    <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Anggota</th>
+                    <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}</th>
                     <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Jenis Pengajuan</th>
                     <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Tanggal Pengajuan</th>
                     <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
@@ -118,7 +120,9 @@
                                 @endif
                                 <div class="min-w-0">
                                     <p class="font-semibold text-slate-900">{{ $approval->pegawai?->nama_pegawai ?? '-' }}</p>
+                                    @hasfeature('division')
                                     <p class="text-xs text-slate-500">{{ $approval->pegawai?->masterDivisi?->nama_divisi ?? '-' }}</p>
+                                    @endhasfeature
                                 </div>
                             </div>
                         </td>

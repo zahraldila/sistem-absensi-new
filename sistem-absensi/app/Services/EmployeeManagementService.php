@@ -43,38 +43,70 @@ class EmployeeManagementService
 
     protected function buildExportRows(Collection $rows): Collection
     {
-        return $rows->values()->map(function ($pegawai, $index) {
-            return [
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+        $memberLabel = \App\Helpers\OrganizationHelper::term('member', 'Anggota');
+        $memberIdLabel = \App\Helpers\OrganizationHelper::term('member_id', 'NIP');
+        $divisionLabel = \App\Helpers\OrganizationHelper::term('division', 'Divisi');
+        $positionLabel = \App\Helpers\OrganizationHelper::term('position', 'Jabatan');
+
+        return $rows->values()->map(function ($pegawai, $index) use ($hasDivision, $hasPosition, $memberLabel, $memberIdLabel, $divisionLabel, $positionLabel) {
+            $row = [
                 'No' => $index + 1,
-                'Nama Anggota' => $pegawai->nama_pegawai,
-                'NIP' => $pegawai->nip ?? '',
+                'Nama ' . $memberLabel => $pegawai->nama_pegawai,
+                $memberIdLabel => $pegawai->nip ?? '',
                 'Employee ID' => $pegawai->pegawai_id ?? '',
-                'Divisi' => $pegawai->masterDivisi->nama_divisi ?? '',
-                'Jabatan' => $pegawai->masterJabatan->nama_jabatan ?? '',
-                'Role Akses' => $pegawai->akun->role ?? '',
-                'Status' => $pegawai->status ?? '',
-                'Email' => $pegawai->email ?? '',
-                'No Handphone' => $pegawai->no_handphone ?? '',
-                'Username' => $pegawai->akun->username ?? '',
             ];
+
+            if ($hasDivision) {
+                $row[$divisionLabel] = $pegawai->masterDivisi->nama_divisi ?? '';
+            }
+
+            if ($hasPosition) {
+                $row[$positionLabel] = $pegawai->masterJabatan->nama_jabatan ?? '';
+            }
+
+            $row['Role Akses'] = $pegawai->akun->role ?? '';
+            $row['Status'] = $pegawai->status ?? '';
+            $row['Email'] = $pegawai->email ?? '';
+            $row['No Handphone'] = $pegawai->no_handphone ?? '';
+            $row['Username'] = $pegawai->akun->username ?? '';
+
+            return $row;
         });
     }
 
     protected function buildCsvRows(Collection $rows): Collection
     {
-        return $rows->values()->map(function ($pegawai, $index) {
-            return [
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+        $memberIdLabel = \App\Helpers\OrganizationHelper::term('member_id', 'NIP');
+        $divisionLabel = \App\Helpers\OrganizationHelper::term('division', 'Divisi');
+        $positionLabel = \App\Helpers\OrganizationHelper::term('position', 'Jabatan');
+
+        return $rows->values()->map(function ($pegawai, $index) use ($hasDivision, $hasPosition, $memberIdLabel, $divisionLabel, $positionLabel) {
+            $row = [
                 'No' => $index + 1,
-                'Nama Anggota' => $pegawai->nama_pegawai,
-                'NIP' => $pegawai->nip ?? '',
-                'Employee ID' => $pegawai->pegawai_id ?? '',
+                'Nama' => $pegawai->nama_pegawai,
+                $memberIdLabel => $pegawai->nip ?? '',
                 'Email' => $pegawai->email ?? '',
                 'No Handphone' => $pegawai->no_handphone ?? '',
-                'Divisi' => $pegawai->masterDivisi->nama_divisi ?? '',
-                'Jabatan' => $pegawai->masterJabatan->nama_jabatan ?? '',
-                'Role Akses' => $pegawai->akun->role ?? '',
-                'Status' => $pegawai->status ?? '',
             ];
+
+            if ($hasDivision) {
+                $row[$divisionLabel] = $pegawai->masterDivisi->nama_divisi ?? '';
+            }
+
+            if ($hasPosition) {
+                $row[$positionLabel] = $pegawai->masterJabatan->nama_jabatan ?? '';
+            }
+
+            $row['Role Akses'] = $pegawai->akun->role ?? '';
+            $row['Status'] = $pegawai->status ?? '';
+
+            return $row;
         });
     }
 
@@ -134,26 +166,33 @@ class EmployeeManagementService
     protected function exportPdf(Collection $rows, array $filters)
     {
         $filename = 'manajemen-akun-' . date('Ymd_His') . '.pdf';
-        $exportRows = $this->buildExportRows($rows)->map(function ($row) {
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+
+        $exportRows = $rows->values()->map(function ($pegawai, $index) {
             return [
-                'No' => $row['No'],
-                'Nama Anggota' => $row['Nama Anggota'],
-                'NIP' => $row['NIP'],
-                'Employee ID' => $row['Employee ID'],
-                'Divisi' => $row['Divisi'] ?? $row['Department/Divisi'] ?? '',
-                'Jabatan' => $row['Jabatan'] ?? $row['Role'] ?? '',
-                'Status' => $row['Status'],
-                'Email' => $row['Email'],
-                'No Handphone' => $row['No Handphone'],
+                'No' => $index + 1,
+                'Nama Anggota' => $pegawai->nama_pegawai,
+                'NIP' => $pegawai->nip ?? '',
+                'Employee ID' => $pegawai->pegawai_id ?? '',
+                'Divisi' => $pegawai->masterDivisi->nama_divisi ?? '',
+                'Jabatan' => $pegawai->masterJabatan->nama_jabatan ?? '',
+                'Status' => $pegawai->status ?? '',
+                'Email' => $pegawai->email ?? '',
+                'No Handphone' => $pegawai->no_handphone ?? '',
             ];
         });
 
         $data = [
+            'organization' => $org,
             'rows' => $exportRows,
+            'hasDivision' => $hasDivision,
+            'hasPosition' => $hasPosition,
             'filters' => [
                 'status' => (!empty($filters['status'])) ? $filters['status'] : 'Semua',
-                'divisi' => (!empty($filters['divisi_id'])) ? ($this->repository->getDivisions()->firstWhere('divisi_id', $filters['divisi_id'])->nama_divisi ?? 'Semua') : 'Semua',
-                'role' => (!empty($filters['jabatan_id'])) ? ($this->repository->getRoles()->firstWhere('jabatan_id', $filters['jabatan_id'])->nama_jabatan ?? 'Semua') : 'Semua',
+                'divisi' => ($hasDivision && !empty($filters['divisi_id'])) ? ($this->repository->getDivisions()->firstWhere('divisi_id', $filters['divisi_id'])->nama_divisi ?? 'Semua') : 'Semua',
+                'role' => ($hasPosition && !empty($filters['jabatan_id'])) ? ($this->repository->getRoles()->firstWhere('jabatan_id', $filters['jabatan_id'])->nama_jabatan ?? 'Semua') : 'Semua',
                 'pegawai' => (!empty($filters['pegawai_id'])) ? ($this->repository->findByPegawaiId($filters['pegawai_id'])->nama_pegawai ?? $filters['pegawai_id']) : 'Semua',
             ],
         ];
@@ -165,22 +204,33 @@ class EmployeeManagementService
 
     public function listEmployees(?string $search = null): LengthAwarePaginator
     {
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+
         $query = $this->repository->query();
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search, $hasDivision, $hasPosition) {
                 $q->where('nama_pegawai', 'ilike', '%' . $search . '%')
                     ->orWhere('nip', 'ilike', '%' . $search . '%')
-                    ->orWhere('email', 'ilike', '%' . $search . '%')
-                    ->orWhereHas('masterDivisi', function ($q2) use ($search) {
+                    ->orWhere('email', 'ilike', '%' . $search . '%');
+
+                if ($hasDivision) {
+                    $q->orWhereHas('masterDivisi', function ($q2) use ($search) {
                         $q2->where('nama_divisi', 'ilike', '%' . $search . '%');
-                    })
-                    ->orWhereHas('masterJabatan', function ($q2) use ($search) {
-                        $q2->where('nama_jabatan', 'ilike', '%' . $search . '%');
-                    })
-                    ->orWhereHas('akun', function ($q2) use ($search) {
-                        $q2->where('role', 'ilike', '%' . $search . '%');
                     });
+                }
+
+                if ($hasPosition) {
+                    $q->orWhereHas('masterJabatan', function ($q2) use ($search) {
+                        $q2->where('nama_jabatan', 'ilike', '%' . $search . '%');
+                    });
+                }
+
+                $q->orWhereHas('akun', function ($q2) use ($search) {
+                    $q2->where('role', 'ilike', '%' . $search . '%');
+                });
             });
         }
 

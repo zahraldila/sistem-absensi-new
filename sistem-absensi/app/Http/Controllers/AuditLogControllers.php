@@ -44,12 +44,19 @@ class AuditLogControllers extends Controller
     public function webIndex(Request $request)
     {
         $user = Auth::user();
+        $isSuperAdmin = $user && $user->isSuperAdmin();
+        $orgId = OrganizationHelper::getActiveOrganizationId();
 
-        $orgId = OrganizationHelper::requireActiveOrganization();
+        // If not super admin and no org context, require valid organization
+        if (! $isSuperAdmin && ! $orgId) {
+            abort(403, 'Anda tidak memiliki akses organisasi yang valid. Silakan hubungi administrator.');
+        }
 
         $query = DB::table('audit_log')
             ->join('akun', 'audit_log.akun_id', '=', 'akun.id')
             ->leftJoin('pegawai', 'akun.pegawai_id', '=', 'pegawai.pegawai_id')
+            ->leftJoin('organizations', 'pegawai.organization_id', '=', 'organizations.organization_id')
+            ->leftJoin('role as access_role', 'akun.role_id', '=', 'access_role.role_id')
             ->select(
                 'audit_log.log_id',
                 'audit_log.aktivitas',
@@ -57,12 +64,41 @@ class AuditLogControllers extends Controller
                 'akun.username',
                 'akun.role',
                 'access_role.nama_role as access_role',
-                'pegawai.nama_pegawai'
-            )
-            ->leftJoin('role as access_role', 'akun.role_id', '=', 'access_role.role_id')
-            ->where('pegawai.organization_id', $orgId);
-        
-        $logs = $query->orderBy('audit_log.waktu_log', 'desc')->paginate(15);
+                'pegawai.nama_pegawai',
+                'organizations.nama_organisasi',
+                'pegawai.organization_id'
+            );
+
+        if (! $isSuperAdmin) {
+            $query->where('pegawai.organization_id', $orgId);
+        } else {
+            // Filter by organization if specified
+            if ($request->filled('organization_id') && $request->organization_id !== 'all') {
+                $query->where('pegawai.organization_id', $request->organization_id);
+            }
+        }
+
+        // Filter by tanggal
+        if ($request->filled('tanggal')) {
+            $query->whereDate('audit_log.waktu_log', $request->tanggal);
+        }
+
+        // Filter by user / pegawai
+        if ($request->filled('user')) {
+            $userSearch = '%' . strtolower(trim((string) $request->user)) . '%';
+            $query->where(function ($q) use ($userSearch) {
+                $q->whereRaw('LOWER(pegawai.nama_pegawai) LIKE ?', [$userSearch])
+                  ->orWhereRaw('LOWER(akun.username) LIKE ?', [$userSearch]);
+            });
+        }
+
+        // Filter by aktivitas keyword
+        if ($request->filled('aktivitas')) {
+            $aktivitasSearch = '%' . strtolower(trim((string) $request->aktivitas)) . '%';
+            $query->whereRaw('LOWER(audit_log.aktivitas) LIKE ?', [$aktivitasSearch]);
+        }
+
+        $logs = $query->orderBy('audit_log.waktu_log', 'desc')->paginate(15)->withQueryString();
         $logs->getCollection()->transform(function ($log) {
             $actorName = trim((string) ($log->nama_pegawai ?? '')) ?: $log->username;
             $activity = $log->aktivitas;
@@ -79,24 +115,32 @@ class AuditLogControllers extends Controller
 
             $log->aktivitas_display = $activity;
             $log->access_role_display = $log->access_role ?: ($log->role ?: 'Tanpa Role');
+            $log->organization_name_display = $log->nama_organisasi ?: 'Sistem / Super Admin';
 
             return $log;
         });
 
+        // Hitung statistik terfilter atau global
+        $filterOrgId = (! $isSuperAdmin) ? $orgId : ($request->filled('organization_id') && $request->organization_id !== 'all' ? $request->organization_id : null);
+
         $totalPegawaiQuery = Pegawai::whereDoesntHave('akun', function ($query) {
             $query->whereRaw('LOWER(role) = ?', ['admin']);
-        })->where('status', 'Aktif')
-          ->where('organization_id', $orgId);
-        
-        $totalPegawai = $totalPegawaiQuery->count(); 
-        
-        $hadirQuery = Attendance::where('tanggal_absensi', today())
-            ->whereHas('pegawai', function($q) use ($orgId) {
-                $q->where('organization_id', $orgId);
+        })->where('status', 'Aktif');
+
+        if ($filterOrgId) {
+            $totalPegawaiQuery->where('organization_id', $filterOrgId);
+        }
+        $totalPegawai = $totalPegawaiQuery->count();
+
+        $hadirQuery = Attendance::where('tanggal_absensi', today());
+        if ($filterOrgId) {
+            $hadirQuery->whereHas('pegawai', function($q) use ($filterOrgId) {
+                $q->where('organization_id', $filterOrgId);
             });
-            
+        }
+
         $hadirHariIni = (clone $hadirQuery)->count();
-        
+
         $wfoCount = (clone $hadirQuery)
             ->where(function($query) {
                 $query->whereNull('skema_kerja')
@@ -108,13 +152,18 @@ class AuditLogControllers extends Controller
             ->whereIn('skema_kerja', ['WFH', 'WFC'])
             ->count();
 
-        // PASTIKAN NAMA FILE BLADE DI BAWAH INI SESUAI DENGAN YANG ADA DI FOLDERMU
+        $allOrganizations = $isSuperAdmin
+            ? \App\Models\Organization::orderBy('nama_organisasi')->get(['organization_id', 'nama_organisasi'])
+            : collect();
+
         return view('admin.log-aktivitas', compact(
             'logs',
             'totalPegawai',
             'hadirHariIni',
             'wfoCount',
-            'wfhWfcCount'
+            'wfhWfcCount',
+            'isSuperAdmin',
+            'allOrganizations'
         ));
     }
 }

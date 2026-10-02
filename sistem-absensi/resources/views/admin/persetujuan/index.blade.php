@@ -23,7 +23,11 @@
                 </h1>
 
                 <p class="text-xs sm:text-[15px] text-slate-500">
-                    Pengelolaan izin, sakit, WFH, WFC, dan dinas anggota
+                    @hasfeature('wfo_wfh')
+                    Pengelolaan izin, sakit, WFH, WFC, dan dinas {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }}
+                    @else
+                    Pengelolaan izin, sakit, dan pengajuan {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }}
+                    @endhasfeature
                 </p>
             </div>
 
@@ -298,12 +302,16 @@
                             <div class="mx-auto flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-full bg-slate-100 text-2xl sm:text-3xl font-semibold text-slate-700 border border-slate-200" x-text="detailInitials()"></div>
                         </template>
                         <div class="mt-3 text-base sm:text-lg font-bold text-slate-900" x-text="detailData.nama_pegawai"></div>
+                        @hasfeature('division')
                         <div class="text-xs text-slate-500" x-text="detailData.divisi_name"></div>
+                        @endhasfeature
                     </div>
                     <div class="space-y-3">
                         <div class="grid grid-cols-2 gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 text-xs sm:text-sm">
-                            <div class="text-slate-500">Department</div>
+                            @hasfeature('division')
+                            <div class="text-slate-500">{{ \App\Helpers\OrganizationHelper::term('division', 'Divisi') }}</div>
                             <div class="font-medium text-slate-900" x-text="detailData.divisi_name || '-' "></div>
+                            @endhasfeature
 
                             <div class="text-slate-500">Jenis Pengajuan</div>
                             <div class="font-medium text-slate-900" x-text="detailData.jenis_pengajuan || '-' "></div>
@@ -485,7 +493,13 @@
                 <div class="flex items-start justify-between border-b border-slate-200 px-5 sm:px-6 py-4">
                     <div>
                         <h2 class="text-lg sm:text-xl font-bold text-slate-900">Tambah Catatan Absensi</h2>
-                        <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Catat pengajuan absensi (WFH, WFC, sakit, izin, cuti, dinas, dll) atas nama anggota.</p>
+                        <p class="mt-0.5 text-xs sm:text-sm text-slate-500">
+                            @hasfeature('wfo_wfh')
+                            Catat pengajuan absensi (WFH, WFC, sakit, izin, cuti, dinas, dll) atas nama {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }}.
+                            @else
+                            Catat pengajuan absensi (sakit, izin, cuti, dll) atas nama {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }}.
+                            @endhasfeature
+                        </p>
                     </div>
                     <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 shrink-0 ml-4"
                         @click="closeCreateModal()" aria-label="Tutup modal">
@@ -528,10 +542,10 @@
                             @endphp
                             <x-forms.searchable-select 
                                 name="pegawai_id" 
-                                label="Anggota *"
-                                placeholder="Pilih Anggota..."
-                                searchPlaceholder="Cari anggota..."
-                                notFoundText="Anggota tidak ditemukan"
+                                label="{{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }} *"
+                                placeholder="Pilih {{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}..."
+                                searchPlaceholder="Cari {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }}..."
+                                notFoundText="{{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }} tidak ditemukan"
                                 :showPlaceholderOption="false"
                                 :options="$createPegawaiOptions" 
                                 selected="{{ old('pegawai_id') }}" 
@@ -651,9 +665,11 @@
                             <option value="">Semua</option>
                             <option value="Izin">Izin</option>
                             <option value="Sakit">Sakit</option>
+                            @hasfeature('wfo_wfh')
                             <option value="WFH">WFH</option>
                             <option value="WFC">WFC</option>
                             <option value="Dinas">Dinas</option>
+                            @endhasfeature
                         </select>
                     </div>
                 </div>
@@ -805,7 +821,7 @@
                                 return ['value' => $p->pegawai_id, 'text' => $p->nama_pegawai];
                             })->toArray();
                         @endphp
-                        <x-forms.searchable-select name="pegawai_id" label="Anggota" :options="$pegawaiOptions" />
+                        <x-forms.searchable-select name="pegawai_id" :label="\App\Helpers\OrganizationHelper::term('member', 'Anggota')" :options="$pegawaiOptions" />
                     </div>
                 </div>
 

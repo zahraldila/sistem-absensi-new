@@ -87,6 +87,20 @@
                     </div>
 
                     <div>
+                        <label for="category_id" class="block text-sm font-semibold text-slate-700 mb-2">Kategori Organisasi <span class="text-red-500">*</span></label>
+                        <select id="category_id" name="category_id" required
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition bg-white">
+                            <option value="">-- Pilih Kategori --</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : ($category->slug === 'perusahaan' ? 'selected' : '') }}>
+                                    {{ $category->name }} @if($category->description) — {{ Str::limit($category->description, 60) }} @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1.5 text-xs text-slate-500">Fitur default organisasi akan di-provisioning otomatis berdasarkan template kategori ini.</p>
+                    </div>
+
+                    <div>
                         <label for="alamat" class="block text-sm font-semibold text-slate-700 mb-2">Alamat (Opsional)</label>
                         <textarea id="alamat" name="alamat" rows="3" placeholder="Alamat lengkap organisasi..."
                             class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition">{{ old('alamat') }}</textarea>

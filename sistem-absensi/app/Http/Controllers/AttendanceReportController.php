@@ -18,8 +18,12 @@ class AttendanceReportController extends Controller
     private function attendanceQuery(Request $request)
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
+        $org   = \App\Helpers\OrganizationHelper::getActiveOrganization();
+
+        $hasDivision = $org ? $org->hasFeature('division') : false;
+        $hasWfoWfh   = $org ? $org->hasFeature('wfo_wfh') : false;
         
-        $query = Attendance::with('pegawai.masterDivisi')
+        $query = Attendance::with($hasDivision ? 'pegawai.masterDivisi' : 'pegawai')
             ->whereHas('pegawai', function ($q) use ($orgId) {
                 $q->where('organization_id', $orgId)
                   ->where('status', 'Aktif')
@@ -31,12 +35,16 @@ class AttendanceReportController extends Controller
         if ($search = trim((string) $request->query('search', ''))) {
             $searchTerm = "%{$search}%";
 
-            $query->where(function ($query) use ($search, $searchTerm) {
+            $query->where(function ($query) use ($search, $searchTerm, $hasDivision, $hasWfoWfh) {
                 $query->whereHas('pegawai', function ($query) use ($searchTerm) {
                     $query->where('nama_pegawai', 'ilike', $searchTerm);
-                })
-                ->orWhere('skema_kerja', 'ilike', $searchTerm)
-                ->orWhere('status_kehadiran', 'ilike', $searchTerm)
+                });
+
+                if ($hasWfoWfh) {
+                    $query->orWhere('skema_kerja', 'ilike', $searchTerm);
+                }
+
+                $query->orWhere('status_kehadiran', 'ilike', $searchTerm)
                 ->orWhereRaw("to_char(tanggal_absensi, 'FMDD TMMonth YYYY') ILIKE ?", [$searchTerm])
                 ->orWhereRaw("CAST(tanggal_absensi AS TEXT) ILIKE ?", [$searchTerm])
                 ->orWhereRaw("COALESCE(to_char(jam_checkin, 'HH24:MI'), '') ILIKE ?", [$searchTerm])
@@ -92,7 +100,8 @@ class AttendanceReportController extends Controller
             $query->whereDate('tanggal_absensi', '<=', $endDate);
         }
 
-        if ($divisiId = $request->query('divisi_id')) {
+        // Division filter only applies if division feature is enabled
+        if ($hasDivision && ($divisiId = $request->query('divisi_id'))) {
             if ($divisiId !== 'Semua') {
                 $query->whereHas('pegawai', function ($q) use ($divisiId) {
                     $q->where('divisi_id', $divisiId);
@@ -100,7 +109,9 @@ class AttendanceReportController extends Controller
             }
         }
 
-        if ($modeKerja = $request->query('mode_kerja')) {
+        // Work mode filter only applies if wfo_wfh feature is enabled
+        $modeKerja = $request->query('mode_kerja') ?? $request->query('work_mode');
+        if ($hasWfoWfh && $modeKerja) {
             if ($modeKerja !== 'Semua') {
                 $query->where('skema_kerja', $modeKerja);
             }
@@ -117,8 +128,14 @@ class AttendanceReportController extends Controller
 
     private function getAbsentRecords(Request $request): Collection
     {
-        $modeKerja = $request->query('mode_kerja');
-        if ($modeKerja && $modeKerja !== 'Semua') {
+        $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
+        $org   = \App\Helpers\OrganizationHelper::getActiveOrganization();
+
+        $hasDivision = $org ? $org->hasFeature('division') : false;
+        $hasWfoWfh   = $org ? $org->hasFeature('wfo_wfh') : false;
+
+        $modeKerja = $request->query('mode_kerja') ?? $request->query('work_mode');
+        if ($hasWfoWfh && $modeKerja && $modeKerja !== 'Semua') {
             return collect();
         }
 
@@ -149,21 +166,19 @@ class AttendanceReportController extends Controller
         }
 
         $records = collect();
-        $divisiId = $request->query('divisi_id');
+        $divisiId = $hasDivision ? $request->query('divisi_id') : null;
         $pegawaiId = $request->query('pegawai_id');
         $search = trim((string) $request->query('search', ''));
         $searchTerm = "%{$search}%";
 
-        $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
-
         foreach ($dates as $date) {
-            $query = Pegawai::with('masterDivisi')
+            $query = Pegawai::with($hasDivision ? 'masterDivisi' : [])
                 ->where('organization_id', $orgId)
                 ->whereDoesntHave('absensi', function ($q) use ($date) {
                     $q->whereDate('tanggal_absensi', $date);
                 });
 
-            if ($divisiId && $divisiId !== 'Semua') {
+            if ($hasDivision && $divisiId && $divisiId !== 'Semua') {
                 $query->where('divisi_id', $divisiId);
             }
 
@@ -369,13 +384,21 @@ class AttendanceReportController extends Controller
             ->orderBy('nama_pegawai')
             ->get(['pegawai_id', 'nama_pegawai']);
         $statusOptions = ['Semua', 'Hadir', 'Tepat Waktu', 'Terlambat', 'Tidak Hadir'];
-        $divisions = \App\Models\MasterDivisi::orderBy('nama_divisi')->get(['divisi_id', 'nama_divisi']);
+        $org = \App\Helpers\OrganizationHelper::getActiveOrganization();
+        $hasDivision = $org ? $org->hasFeature('division') : false;
+        $hasWfoWfh = $org ? $org->hasFeature('wfo_wfh') : false;
+
+        $divisions = $hasDivision
+            ? \App\Models\MasterDivisi::orderBy('nama_divisi')->get(['divisi_id', 'nama_divisi'])
+            : collect();
 
         return view('admin.laporan-kehadiran', [
             'attendances' => $attendances,
             'pegawaiList' => $pegawaiList,
             'statusOptions' => $statusOptions,
             'divisions' => $divisions,
+            'hasDivision' => $hasDivision,
+            'hasWfoWfh' => $hasWfoWfh,
         ]);
     }
 
@@ -387,24 +410,42 @@ class AttendanceReportController extends Controller
 
         Carbon::setLocale('id');
 
+        $org         = \App\Helpers\OrganizationHelper::getActiveOrganization();
+        $hasDivision = $org ? $org->hasFeature('division') : false;
+        $hasWfoWfh   = $org ? $org->hasFeature('wfo_wfh') : false;
+
+        $mapRow = function (Attendance $attendance, string $status, ?string $checkin, ?string $checkout) use ($hasDivision, $hasWfoWfh) {
+            $row = [
+                'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
+            ];
+
+            if ($hasDivision) {
+                $row['Divisi'] = $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-';
+            }
+
+            $row['Tanggal'] = $this->formatDate($attendance->tanggal_absensi);
+            $row['Jam Masuk'] = $checkin ? $this->formatTime($checkin) : '-';
+            $row['Jam Keluar'] = $checkout ? $this->formatTime($checkout) : '-';
+            $row['Durasi Kehadiran'] = ($checkin && $checkout) ? $this->formatDuration($checkin, $checkout) : '-';
+
+            if ($hasWfoWfh) {
+                $row['Mode Kerja'] = $attendance->skema_kerja ?? '-';
+            }
+
+            $row['Lokasi'] = $this->formatLocation($attendance->latitude, $attendance->longitude);
+            $row['Status'] = $status;
+
+            return $row;
+        };
+
         if ($request->query('status') === 'Tidak Hadir') {
-            $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) {
-                return [
-                    'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
-                    'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
-                    'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
-                    'Jam Masuk' => '-',
-                    'Jam Keluar' => '-',
-                    'Durasi Kehadiran' => '-',
-                    'Mode Kerja' => '-',
-                    'Lokasi' => '-',
-                    'Status' => 'Tidak Hadir',
-                ];
+            $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) use ($mapRow) {
+                return $mapRow($attendance, 'Tidak Hadir', null, null);
             });
         } else {
             $rows = $this->attendanceQuery($request)
                 ->get()
-                ->map(function (Attendance $attendance) {
+                ->map(function (Attendance $attendance) use ($mapRow) {
                     $status = $attendance->status_kehadiran ?? 'Hadir';
                     if ($attendance->jam_checkin) {
                         $schedule = \DB::table('jadwal_kerja')
@@ -416,17 +457,7 @@ class AttendanceReportController extends Controller
                             $status = ($checkInTime > $jamMasukTime) ? 'Terlambat' : 'Hadir';
                         }
                     }
-                    return [
-                        'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
-                        'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
-                        'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
-                        'Jam Masuk' => $this->formatTime($attendance->jam_checkin),
-                        'Jam Keluar' => $this->formatTime($attendance->jam_checkout),
-                        'Durasi Kehadiran' => $this->formatDuration($attendance->jam_checkin, $attendance->jam_checkout),
-                        'Mode Kerja' => $attendance->skema_kerja ?? '-',
-                        'Lokasi' => $this->formatLocation($attendance->latitude, $attendance->longitude),
-                        'Status' => $status,
-                    ];
+                    return $mapRow($attendance, $status, $attendance->jam_checkin, $attendance->jam_checkout);
                 });
         }
 
@@ -475,24 +506,42 @@ class AttendanceReportController extends Controller
 
         Carbon::setLocale('id');
 
+        $org         = \App\Helpers\OrganizationHelper::getActiveOrganization();
+        $hasDivision = $org ? $org->hasFeature('division') : false;
+        $hasWfoWfh   = $org ? $org->hasFeature('wfo_wfh') : false;
+
+        $mapRow = function (Attendance $attendance, string $status, ?string $checkin, ?string $checkout) use ($hasDivision, $hasWfoWfh) {
+            $row = [
+                'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
+            ];
+
+            if ($hasDivision) {
+                $row['Divisi'] = $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-';
+            }
+
+            $row['Tanggal'] = $this->formatDate($attendance->tanggal_absensi);
+            $row['Jam Masuk'] = $checkin ? $this->formatTime($checkin) : '-';
+            $row['Jam Keluar'] = $checkout ? $this->formatTime($checkout) : '-';
+            $row['Durasi Kehadiran'] = ($checkin && $checkout) ? $this->formatDuration($checkin, $checkout) : '-';
+
+            if ($hasWfoWfh) {
+                $row['Mode Kerja'] = $attendance->skema_kerja ?? '-';
+            }
+
+            $row['Lokasi'] = $this->formatLocation($attendance->latitude, $attendance->longitude);
+            $row['Status'] = $status;
+
+            return $row;
+        };
+
         if ($request->query('status') === 'Tidak Hadir') {
-            $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) {
-                return [
-                    'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
-                    'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
-                    'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
-                    'Jam Masuk' => '-',
-                    'Jam Keluar' => '-',
-                    'Durasi Kehadiran' => '-',
-                    'Mode Kerja' => '-',
-                    'Lokasi' => '-',
-                    'Status' => 'Tidak Hadir',
-                ];
+            $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) use ($mapRow) {
+                return $mapRow($attendance, 'Tidak Hadir', null, null);
             });
         } else {
             $rows = $this->attendanceQuery($request)
                 ->get()
-                ->map(function (Attendance $attendance) {
+                ->map(function (Attendance $attendance) use ($mapRow) {
                     $status = $attendance->status_kehadiran ?? 'Hadir';
                     if ($attendance->jam_checkin) {
                         $schedule = \DB::table('jadwal_kerja')
@@ -504,17 +553,7 @@ class AttendanceReportController extends Controller
                             $status = ($checkInTime > $jamMasukTime) ? 'Terlambat' : 'Hadir';
                         }
                     }
-                    return [
-                        'Nama Anggota' => $attendance->pegawai?->nama_pegawai ?? '-',
-                        'Divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
-                        'Tanggal' => $this->formatDate($attendance->tanggal_absensi),
-                        'Jam Masuk' => $this->formatTime($attendance->jam_checkin),
-                        'Jam Keluar' => $this->formatTime($attendance->jam_checkout),
-                        'Durasi Kehadiran' => $this->formatDuration($attendance->jam_checkin, $attendance->jam_checkout),
-                        'Mode Kerja' => $attendance->skema_kerja ?? '-',
-                        'Lokasi' => $this->formatLocation($attendance->latitude, $attendance->longitude),
-                        'Status' => $status,
-                    ];
+                    return $mapRow($attendance, $status, $attendance->jam_checkin, $attendance->jam_checkout);
                 });
         }
 
@@ -562,24 +601,42 @@ class AttendanceReportController extends Controller
 
         Carbon::setLocale('id');
 
+        $org         = \App\Helpers\OrganizationHelper::getActiveOrganization();
+        $hasDivision = $org ? $org->hasFeature('division') : false;
+        $hasWfoWfh   = $org ? $org->hasFeature('wfo_wfh') : false;
+
+        $mapPdfRow = function (Attendance $attendance, string $status, ?string $checkin, ?string $checkout) use ($hasDivision, $hasWfoWfh) {
+            $row = [
+                'nama' => $attendance->pegawai?->nama_pegawai ?? '-',
+            ];
+
+            if ($hasDivision) {
+                $row['divisi'] = $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-';
+            }
+
+            $row['tanggal'] = $this->formatDate($attendance->tanggal_absensi);
+            $row['jam_masuk'] = $checkin ? $this->formatTime($checkin) : '-';
+            $row['jam_keluar'] = $checkout ? $this->formatTime($checkout) : '-';
+            $row['durasi'] = ($checkin && $checkout) ? $this->formatDuration($checkin, $checkout) : '-';
+
+            if ($hasWfoWfh) {
+                $row['mode'] = $attendance->skema_kerja ?? '-';
+            }
+
+            $row['lokasi'] = $this->formatLocation($attendance->latitude, $attendance->longitude);
+            $row['status'] = $status;
+
+            return $row;
+        };
+
         if ($request->query('status') === 'Tidak Hadir') {
-            $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) {
-                return [
-                    'nama' => $attendance->pegawai?->nama_pegawai ?? '-',
-                    'divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
-                    'tanggal' => $this->formatDate($attendance->tanggal_absensi),
-                    'jam_masuk' => '-',
-                    'jam_keluar' => '-',
-                    'durasi' => '-',
-                    'mode' => '-',
-                    'lokasi' => '-',
-                    'status' => 'Tidak Hadir',
-                ];
+            $rows = $this->getAbsentRecords($request)->map(function (Attendance $attendance) use ($mapPdfRow) {
+                return $mapPdfRow($attendance, 'Tidak Hadir', null, null);
             });
         } else {
             $rows = $this->attendanceQuery($request)
                 ->get()
-                ->map(function (Attendance $attendance) {
+                ->map(function (Attendance $attendance) use ($mapPdfRow) {
                     $status = $attendance->status_kehadiran ?? 'Hadir';
                     if ($attendance->jam_checkin) {
                         $schedule = \DB::table('jadwal_kerja')
@@ -591,17 +648,7 @@ class AttendanceReportController extends Controller
                             $status = ($checkInTime > $jamMasukTime) ? 'Terlambat' : 'Hadir';
                         }
                     }
-                    return [
-                        'nama' => $attendance->pegawai?->nama_pegawai ?? '-',
-                        'divisi' => $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-',
-                        'tanggal' => $this->formatDate($attendance->tanggal_absensi),
-                        'jam_masuk' => $this->formatTime($attendance->jam_checkin),
-                        'jam_keluar' => $this->formatTime($attendance->jam_checkout),
-                        'durasi' => $this->formatDuration($attendance->jam_checkin, $attendance->jam_checkout),
-                        'mode' => $attendance->skema_kerja ?? '-',
-                        'lokasi' => $this->formatLocation($attendance->latitude, $attendance->longitude),
-                        'status' => $status,
-                    ];
+                    return $mapPdfRow($attendance, $status, $attendance->jam_checkin, $attendance->jam_checkout);
                 });
         }
 
@@ -615,8 +662,10 @@ class AttendanceReportController extends Controller
         }
 
         $pdf = Pdf::loadView('admin.laporan-kehadiran-pdf', [
-            'rows' => $rows,
+            'rows'        => $rows,
             'generatedAt' => now()->translatedFormat('d F Y H:i'),
+            'hasDivision' => $hasDivision,
+            'hasWfoWfh'   => $hasWfoWfh,
         ]);
 
         $filename = 'laporan-kehadiran-' . now()->format('Ymd-His') . '.pdf';

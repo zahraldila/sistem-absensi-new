@@ -1,3 +1,13 @@
+@php
+    $org = $org ?? \App\Helpers\OrganizationHelper::active();
+    $hasDivision = $hasDivision ?? ($org?->hasFeature('division') ?? false);
+    $hasPosition = $hasPosition ?? ($org?->hasFeature('position') ?? false);
+    $memberTerm = $memberTerm ?? \App\Helpers\OrganizationHelper::term('member', 'Anggota');
+    $memberIdTerm = $memberIdTerm ?? \App\Helpers\OrganizationHelper::term('member_id', 'NIP');
+    $divisionTerm = $divisionTerm ?? \App\Helpers\OrganizationHelper::term('division', 'Divisi');
+    $positionTerm = $positionTerm ?? \App\Helpers\OrganizationHelper::term('position', 'Jabatan');
+@endphp
+
 <div x-show="modalOpen"
     x-cloak
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-3 sm:p-4"
@@ -10,8 +20,8 @@
         <div class="border-b border-slate-200 px-5 sm:px-6 py-4 flex-shrink-0 bg-white">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-lg sm:text-xl font-bold text-slate-900" x-text="isEdit ? 'Edit Anggota' : 'Tambah Anggota'">Tambah Anggota</h2>
-                    <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Isi informasi anggota untuk membuat atau mengubah akun</p>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900" x-text="isEdit ? 'Edit {{ $memberTerm }}' : 'Tambah {{ $memberTerm }}'">Tambah {{ $memberTerm }}</h2>
+                    <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Isi informasi {{ strtolower($memberTerm) }} untuk membuat atau mengubah akun</p>
                 </div>
                 <button type="button" class="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                     @click="closeModal()" aria-label="Tutup modal">
@@ -77,8 +87,8 @@
                 <div class="space-y-3.5">
                     {{-- Nama Lengkap --}}
                     <div>
-                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama Lengkap <span class="text-red-500">*</span></label>
-                        <input type="text" name="nama_pegawai" x-model="form.nama_pegawai" placeholder="Masukkan Nama Lengkap Anggota"
+                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Nama Lengkap {{ $memberTerm }} <span class="text-red-500">*</span></label>
+                        <input type="text" name="nama_pegawai" x-model="form.nama_pegawai" placeholder="Masukkan Nama Lengkap {{ $memberTerm }}"
                             class="w-full rounded-2xl border @error('nama_pegawai') border-red-400 bg-red-50/20 ring-1 ring-red-300 @else border-slate-300 bg-white focus:border-primary focus:ring-1 focus:ring-primary @enderror px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition" />
                         @error('nama_pegawai')
                             <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1.5">
@@ -91,7 +101,7 @@
                     {{-- NIP & NFC --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <div>
-                            <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">NIP <span class="text-red-500">*</span></label>
+                            <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">{{ $memberIdTerm }} <span class="text-red-500">*</span></label>
                             <input type="text" name="nip" x-model="form.nip" placeholder="Contoh : 12345678"
                                 class="w-full rounded-2xl border @error('nip') border-red-400 bg-red-50/20 ring-1 ring-red-300 @else border-slate-300 bg-white focus:border-primary focus:ring-1 focus:ring-primary @enderror px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition" />
                             @error('nip')
@@ -104,7 +114,7 @@
 
                         <div>
                             <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Kartu NFC (opsional)</label>
-                            <input type="text" name="nfc_id" x-model="form.nfc_id" placeholder="UID NFC Anggota"
+                            <input type="text" name="nfc_id" x-model="form.nfc_id" placeholder="UID NFC {{ $memberTerm }}"
                                 class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary" />
                             @error('nfc_id')
                                 <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1.5">
@@ -116,11 +126,12 @@
                     </div>
 
                     {{-- Divisi --}}
+                    @hasfeature('division')
                     <div>
-                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Divisi</label>
+                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">{{ $divisionTerm }}</label>
                         <select name="divisi_id" x-model="form.divisi_id"
                             class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary">
-                            <option value="">Pilih Divisi</option>
+                            <option value="">Pilih {{ $divisionTerm }}</option>
                             @foreach ($filters['divisions'] ?? [] as $division)
                                 <option value="{{ $division['divisi_id'] }}">{{ $division['nama_divisi'] }}</option>
                             @endforeach
@@ -128,7 +139,7 @@
                         <button type="button" @click.prevent="openDivisionModal()"
                             class="mt-1.5 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-primary hover:underline">
                             <i class="fa-solid fa-plus text-xs"></i>
-                            <span>Tambah Divisi Baru</span>
+                            <span>Tambah {{ $divisionTerm }} Baru</span>
                         </button>
                         <template x-if="divisionSuccess">
                             <p class="mt-1 text-xs text-green-600" x-text="divisionSuccess"></p>
@@ -140,13 +151,15 @@
                             </p>
                         @enderror
                     </div>
+                    @endhasfeature
 
                     {{-- Jabatan --}}
+                    @hasfeature('position')
                     <div>
-                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Jabatan</label>
+                        <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">{{ $positionTerm }}</label>
                         <select name="jabatan_id" x-model="form.jabatan_id"
                             class="w-full rounded-2xl border border-slate-300 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary">
-                            <option value="">Pilih Jabatan</option>
+                            <option value="">Pilih {{ $positionTerm }}</option>
                             @foreach ($filters['roles'] ?? [] as $role)
                                 <option value="{{ $role['jabatan_id'] }}">{{ $role['nama_jabatan'] }}</option>
                             @endforeach
@@ -154,7 +167,7 @@
                         <button type="button" @click.prevent="openRoleModal()"
                             class="mt-1.5 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-primary hover:underline">
                             <i class="fa-solid fa-plus text-xs"></i>
-                            <span>Tambah Jabatan Baru</span>
+                            <span>Tambah {{ $positionTerm }} Baru</span>
                         </button>
                         <template x-if="roleSuccess">
                             <p class="mt-1 text-xs text-green-600" x-text="roleSuccess"></p>
@@ -166,6 +179,7 @@
                             </p>
                         @enderror
                     </div>
+                    @endhasfeature
 
                     {{-- Role Akses --}}
                     <div>

@@ -16,15 +16,35 @@ class EmployeeManagementRepository
     public function query(): Builder
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
+        $org = \App\Helpers\OrganizationHelper::active();
+
+        $with = ['akun.roleAkses', 'nfc'];
+        if ($org?->hasFeature('division')) {
+            $with[] = 'masterDivisi';
+        }
+        if ($org?->hasFeature('position')) {
+            $with[] = 'masterJabatan';
+        }
+
         return Pegawai::query()
             ->where('organization_id', $orgId)
-            ->with(['akun.roleAkses', 'masterDivisi', 'masterJabatan', 'nfc']);
+            ->with($with);
     }
 
     public function findByPegawaiId(int $pegawaiId): ?Pegawai
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
-        return Pegawai::with(['akun.roleAkses', 'masterDivisi', 'masterJabatan', 'nfc'])
+        $org = \App\Helpers\OrganizationHelper::active();
+
+        $with = ['akun.roleAkses', 'nfc'];
+        if ($org?->hasFeature('division')) {
+            $with[] = 'masterDivisi';
+        }
+        if ($org?->hasFeature('position')) {
+            $with[] = 'masterJabatan';
+        }
+
+        return Pegawai::with($with)
             ->where('organization_id', $orgId)
             ->where('pegawai_id', $pegawaiId)
             ->first();
@@ -95,6 +115,11 @@ class EmployeeManagementRepository
     public function getDivisions(): Collection
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
+        $org = \App\Helpers\OrganizationHelper::active();
+        if (! $org?->hasFeature('division')) {
+            return collect();
+        }
+
         return MasterDivisi::query()
             ->where('organization_id', $orgId)
             ->orderBy('nama_divisi')
@@ -104,6 +129,11 @@ class EmployeeManagementRepository
     public function getRoles(): Collection
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
+        $org = \App\Helpers\OrganizationHelper::active();
+        if (! $org?->hasFeature('position')) {
+            return collect();
+        }
+
         return MasterJabatan::query()
             ->where('organization_id', $orgId)
             ->orderBy('nama_jabatan')
@@ -122,18 +152,30 @@ class EmployeeManagementRepository
     public function getAccountsForExport(array $filters = []): Collection
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
-        $query = Pegawai::with(['akun', 'masterDivisi', 'masterJabatan'])
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+
+        $with = ['akun'];
+        if ($hasDivision) {
+            $with[] = 'masterDivisi';
+        }
+        if ($hasPosition) {
+            $with[] = 'masterJabatan';
+        }
+
+        $query = Pegawai::with($with)
             ->where('organization_id', $orgId)
             ->when(!empty($filters['status']), function ($q) use ($filters) {
                 $q->where('status', $filters['status']);
             })
-            ->when(!empty($filters['divisi_id']), function ($q) use ($filters) {
+            ->when($hasDivision && !empty($filters['divisi_id']), function ($q) use ($filters) {
                 $q->where('divisi_id', $filters['divisi_id']);
             })
             ->when(!empty($filters['pegawai_id']), function ($q) use ($filters) {
                 $q->where('pegawai_id', $filters['pegawai_id']);
             })
-            ->when(!empty($filters['jabatan_id']), function ($q) use ($filters) {
+            ->when($hasPosition && !empty($filters['jabatan_id']), function ($q) use ($filters) {
                 $q->where('jabatan_id', $filters['jabatan_id']);
             })
             ->orderBy('nama_pegawai');

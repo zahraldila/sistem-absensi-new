@@ -36,8 +36,14 @@ class EmployeeManagementController extends Controller
     public function store(Request $request)
     {
         $orgId = OrganizationHelper::requireActiveOrganization();
-        
-        $data = $request->validate([
+        $org = OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+
+        $nipTerm = OrganizationHelper::term('member_id', 'NIP');
+        $memberTerm = OrganizationHelper::term('member', 'Anggota');
+
+        $rules = [
             'nip' => [
                 'required', 'string', 'max:50',
                 Rule::unique('pegawai', 'nip')->where('organization_id', $orgId)
@@ -53,14 +59,6 @@ class EmployeeManagementController extends Controller
             ],
             'no_handphone' => 'nullable|string|regex:/^[0-9]+$/|max:20',
             'foto_profile' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
-            'divisi_id' => [
-                'nullable', 'integer',
-                Rule::exists('master_divisi', 'divisi_id')->where('organization_id', $orgId)
-            ],
-            'jabatan_id' => [
-                'nullable', 'integer',
-                Rule::exists('master_jabatan', 'jabatan_id')->where('organization_id', $orgId)
-            ],
             'role_id' => [
                 'nullable', 'integer',
                 Rule::exists('role', 'role_id')->where('organization_id', $orgId)
@@ -72,15 +70,31 @@ class EmployeeManagementController extends Controller
             'username' => ['nullable', 'string', 'max:100', 'unique:akun,username'],
             'password' => 'required|string|min:6|confirmed',
             'status' => 'nullable|string|max:50',
-        ], [
-            'nama_pegawai.required' => 'Nama lengkap wajib diisi.',
-            'nama_pegawai.max' => 'Nama lengkap tidak boleh lebih dari 255 karakter.',
-            'nip.required' => 'NIP wajib diisi.',
-            'nip.unique' => 'NIP sudah terdaftar.',
-            'nip.max' => 'NIP tidak boleh lebih dari 50 karakter.',
-            'nfc_id.unique' => 'UID NFC sudah terdaftar pada anggota lain.',
+        ];
+
+        if ($hasDivision) {
+            $rules['divisi_id'] = [
+                'nullable', 'integer',
+                Rule::exists('master_divisi', 'divisi_id')->where('organization_id', $orgId)
+            ];
+        }
+
+        if ($hasPosition) {
+            $rules['jabatan_id'] = [
+                'nullable', 'integer',
+                Rule::exists('master_jabatan', 'jabatan_id')->where('organization_id', $orgId)
+            ];
+        }
+
+        $messages = [
+            'nama_pegawai.required' => "Nama lengkap {$memberTerm} wajib diisi.",
+            'nama_pegawai.max' => "Nama lengkap {$memberTerm} tidak boleh lebih dari 255 karakter.",
+            'nip.required' => "{$nipTerm} wajib diisi.",
+            'nip.unique' => "{$nipTerm} sudah terdaftar.",
+            'nip.max' => "{$nipTerm} tidak boleh lebih dari 50 karakter.",
+            'nfc_id.unique' => "UID NFC sudah terdaftar pada {$memberTerm} lain.",
             'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah digunakan oleh anggota lain.',
+            'email.unique' => "Email sudah digunakan oleh {$memberTerm} lain.",
             'no_handphone.regex' => 'Format nomor handphone tidak valid.',
             'no_handphone.max' => 'Nomor handphone tidak boleh lebih dari 20 karakter.',
             'username.unique' => 'Username sudah digunakan.',
@@ -89,12 +103,21 @@ class EmployeeManagementController extends Controller
             'password.min' => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
             'role.required' => 'Role Akses wajib dipilih.',
-                        'foto_profile.file' => 'Foto profil harus berupa file yang valid.',
+            'foto_profile.file' => 'Foto profil harus berupa file yang valid.',
             'foto_profile.image' => 'File harus berupa gambar.',
             'foto_profile.mimes' => 'Format foto harus berupa JPG, JPEG, atau PNG.',
-            'foto_profile.max' => 'Ukuran foto profil tidak boleh melebihi 2MB.',
             'foto_profile.max' => 'Ukuran foto maksimal 2MB.',
-        ]);
+        ];
+
+        $data = $request->validate($rules, $messages);
+
+        if (! $hasDivision) {
+            $data['divisi_id'] = null;
+        }
+
+        if (! $hasPosition) {
+            $data['jabatan_id'] = null;
+        }
 
         // Minimal salah satu Email atau Username wajib diisi agar pegawai bisa login.
         if (empty(trim($data['email'] ?? '')) && empty(trim($data['username'] ?? ''))) {
@@ -142,13 +165,19 @@ class EmployeeManagementController extends Controller
     public function update(Request $request, Pegawai $pegawai)
     {
         $orgId = OrganizationHelper::requireActiveOrganization();
+        $org = OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
         
         // Verify ownership
         if ($pegawai->organization_id !== $orgId) {
             abort(403, 'Akses ditolak.');
         }
 
-        $data = $request->validate([
+        $nipTerm = OrganizationHelper::term('member_id', 'NIP');
+        $memberTerm = OrganizationHelper::term('member', 'Anggota');
+
+        $rules = [
             'nip' => [
                 'nullable', 'string', 'max:50',
                 Rule::unique('pegawai', 'nip')
@@ -169,14 +198,6 @@ class EmployeeManagementController extends Controller
             ],
             'no_handphone' => 'nullable|string|regex:/^[0-9]+$/|max:20',
             'foto_profile' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
-            'divisi_id' => [
-                'nullable', 'integer',
-                Rule::exists('master_divisi', 'divisi_id')->where('organization_id', $orgId)
-            ],
-            'jabatan_id' => [
-                'nullable', 'integer',
-                Rule::exists('master_jabatan', 'jabatan_id')->where('organization_id', $orgId)
-            ],
             'role_id' => [
                 'nullable', 'integer',
                 Rule::exists('role', 'role_id')->where('organization_id', $orgId)
@@ -194,26 +215,51 @@ class EmployeeManagementController extends Controller
             ],
             'password' => 'nullable|string|min:6|confirmed',
             'status' => 'nullable|string|max:50',
-        ], [
-            'nama_pegawai.required' => 'Nama lengkap wajib diisi.',
-            'nama_pegawai.max' => 'Nama lengkap tidak boleh lebih dari 255 karakter.',
-            'nip.unique' => 'NIP sudah terdaftar.',
-            'nip.max' => 'NIP tidak boleh lebih dari 50 karakter.',
-            'nfc_id.unique' => 'UID NFC sudah terdaftar pada anggota lain.',
+        ];
+
+        if ($hasDivision) {
+            $rules['divisi_id'] = [
+                'nullable', 'integer',
+                Rule::exists('master_divisi', 'divisi_id')->where('organization_id', $orgId)
+            ];
+        }
+
+        if ($hasPosition) {
+            $rules['jabatan_id'] = [
+                'nullable', 'integer',
+                Rule::exists('master_jabatan', 'jabatan_id')->where('organization_id', $orgId)
+            ];
+        }
+
+        $messages = [
+            'nama_pegawai.required' => "Nama lengkap {$memberTerm} wajib diisi.",
+            'nama_pegawai.max' => "Nama lengkap {$memberTerm} tidak boleh lebih dari 255 karakter.",
+            'nip.unique' => "{$nipTerm} sudah terdaftar.",
+            'nip.max' => "{$nipTerm} tidak boleh lebih dari 50 karakter.",
+            'nfc_id.unique' => "UID NFC sudah terdaftar pada {$memberTerm} lain.",
             'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah digunakan oleh anggota lain.',
+            'email.unique' => "Email sudah digunakan oleh {$memberTerm} lain.",
             'no_handphone.regex' => 'Format nomor handphone tidak valid.',
             'no_handphone.max' => 'Nomor handphone tidak boleh lebih dari 20 karakter.',
             'username.unique' => 'Username sudah digunakan.',
             'username.max' => 'Username tidak boleh lebih dari 100 karakter.',
             'password.min' => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
-                        'foto_profile.file' => 'Foto profil harus berupa file yang valid.',
+            'foto_profile.file' => 'Foto profil harus berupa file yang valid.',
             'foto_profile.image' => 'File harus berupa gambar.',
             'foto_profile.mimes' => 'Format foto harus berupa JPG, JPEG, atau PNG.',
-            'foto_profile.max' => 'Ukuran foto profil tidak boleh melebihi 2MB.',
             'foto_profile.max' => 'Ukuran foto maksimal 2MB.',
-        ]);
+        ];
+
+        $data = $request->validate($rules, $messages);
+
+        if (! $hasDivision) {
+            $data['divisi_id'] = null;
+        }
+
+        if (! $hasPosition) {
+            $data['jabatan_id'] = null;
+        }
 
         $data['foto_profile_file'] = $request->file('foto_profile');
 
@@ -222,8 +268,8 @@ class EmployeeManagementController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'email'    => 'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.',
-                    'username' => 'Email atau Username wajib diisi (minimal salah satu) agar anggota dapat login.',
+                    'email'    => "Email atau Username wajib diisi (minimal salah satu) agar {$memberTerm} dapat login.",
+                    'username' => "Email atau Username wajib diisi (minimal salah satu) agar {$memberTerm} dapat login.",
                 ]);
         }
 
@@ -236,18 +282,24 @@ class EmployeeManagementController extends Controller
         if ($user && $user->akun_id) {
             logHelpers::record(
                 $user->akun_id,
-                "Memperbarui data anggota: {$result['pegawai']->nama_pegawai}"
+                "Memperbarui data {$memberTerm}: {$result['pegawai']->nama_pegawai}"
             );
         }
 
         return redirect()
             ->route('admin.employee-management.index')
-            ->with('success', 'Akun anggota berhasil diperbarui.');
+            ->with('success', "Akun {$memberTerm} berhasil diperbarui.");
     }
 
     public function storeDivision(Request $request)
     {
         $orgId = OrganizationHelper::requireActiveOrganization();
+        $org = OrganizationHelper::active();
+        if (! $org?->hasFeature('division')) {
+            abort(404, 'Fitur divisi tidak aktif untuk organisasi ini.');
+        }
+
+        $divisionTerm = OrganizationHelper::term('division', 'Divisi');
         
         $data = $request->validate([
             'nama_divisi' => [
@@ -255,9 +307,9 @@ class EmployeeManagementController extends Controller
                 Rule::unique('master_divisi', 'nama_divisi')->where('organization_id', $orgId)
             ],
         ], [
-            'nama_divisi.required' => 'Nama divisi wajib diisi.',
-            'nama_divisi.unique' => 'Nama divisi sudah ada.',
-            'nama_divisi.max' => 'Nama divisi tidak boleh lebih dari 255 karakter.',
+            'nama_divisi.required' => "Nama {$divisionTerm} wajib diisi.",
+            'nama_divisi.unique' => "Nama {$divisionTerm} sudah ada.",
+            'nama_divisi.max' => "Nama {$divisionTerm} tidak boleh lebih dari 255 karakter.",
         ]);
 
         // Simpan divisi
@@ -269,12 +321,12 @@ class EmployeeManagementController extends Controller
         if ($user && $user->akun_id) {
             logHelpers::record(
                 $user->akun_id,
-                "Menambahkan divisi baru: {$division->nama_divisi}"
+                "Menambahkan {$divisionTerm} baru: {$division->nama_divisi}"
             );
         }
 
         return response()->json([
-            'message' => 'Divisi berhasil ditambahkan.',
+            'message' => "{$divisionTerm} berhasil ditambahkan.",
             'division' => $division,
         ], 201);
     }
@@ -282,6 +334,12 @@ class EmployeeManagementController extends Controller
     public function storeRole(Request $request)
     {
         $orgId = OrganizationHelper::requireActiveOrganization();
+        $org = OrganizationHelper::active();
+        if (! $org?->hasFeature('position')) {
+            abort(404, 'Fitur jabatan tidak aktif untuk organisasi ini.');
+        }
+
+        $positionTerm = OrganizationHelper::term('position', 'Jabatan');
         
         $data = $request->validate([
             'nama_jabatan' => [
@@ -289,9 +347,9 @@ class EmployeeManagementController extends Controller
                 Rule::unique('master_jabatan', 'nama_jabatan')->where('organization_id', $orgId)
             ],
         ], [
-            'nama_jabatan.required' => 'Nama jabatan wajib diisi.',
-            'nama_jabatan.unique' => 'Nama jabatan sudah ada.',
-            'nama_jabatan.max' => 'Nama jabatan tidak boleh lebih dari 255 karakter.',
+            'nama_jabatan.required' => "Nama {$positionTerm} wajib diisi.",
+            'nama_jabatan.unique' => "Nama {$positionTerm} sudah ada.",
+            'nama_jabatan.max' => "Nama {$positionTerm} tidak boleh lebih dari 255 karakter.",
         ]);
 
         // Simpan jabatan
@@ -303,12 +361,12 @@ class EmployeeManagementController extends Controller
         if ($user && $user->akun_id) {
             logHelpers::record(
                 $user->akun_id,
-                "Menambahkan jabatan baru: {$role->nama_jabatan}"
+                "Menambahkan {$positionTerm} baru: {$role->nama_jabatan}"
             );
         }
 
         return response()->json([
-            'message' => 'Jabatan berhasil ditambahkan.',
+            'message' => "{$positionTerm} berhasil ditambahkan.",
             'role' => $role,
         ], 201);
     }

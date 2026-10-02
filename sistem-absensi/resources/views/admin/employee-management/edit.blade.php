@@ -3,8 +3,8 @@
 @section('content')
 <div class="p-6">
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">Edit Akun Anggota</h1>
-        <p class="text-sm text-gray-600">Perbarui detail akun dan data anggota.</p>
+        <h1 class="text-2xl font-semibold text-gray-900">Edit Akun {{ \App\Helpers\OrganizationHelper::term('member') }}</h1>
+        <p class="text-sm text-gray-600">Perbarui detail akun dan data {{ strtolower(\App\Helpers\OrganizationHelper::term('member')) }}.</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -12,11 +12,11 @@
             @csrf
             @method('PUT')
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Nama Anggota</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Nama {{ \App\Helpers\OrganizationHelper::term('member') }}</label>
                 <input type="text" name="nama_pegawai" value="{{ old('nama_pegawai', $employee->nama_pegawai) }}" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
             </div>
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">NIP</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">{{ \App\Helpers\OrganizationHelper::term('member_id') }}</label>
                 <input type="text" name="nip" value="{{ old('nip', $employee->nip) }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
             </div>
             <div>
@@ -37,26 +37,30 @@
                 <label class="mb-1 block text-sm font-medium text-gray-700">Username</label>
                 <input type="text" name="username" value="{{ old('username', $employee->akun->username ?? '') }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
             </div>
+            @hasfeature('division')
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Divisi</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">{{ \App\Helpers\OrganizationHelper::term('division') }}</label>
                 <select name="divisi_id" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
-                    <option value="">Pilih Divisi</option>
+                    <option value="">Pilih {{ \App\Helpers\OrganizationHelper::term('division') }}</option>
                     @foreach ($filters['divisions'] ?? [] as $division)
                         <option value="{{ $division->divisi_id }}" {{ old('divisi_id', $employee->divisi_id) == $division->divisi_id ? 'selected' : '' }}>{{ $division->nama_divisi }}</option>
                     @endforeach
                 </select>
                 @error('divisi_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
+            @endhasfeature
+            @hasfeature('position')
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Jabatan</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">{{ \App\Helpers\OrganizationHelper::term('position') }}</label>
                 <select name="jabatan_id" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
-                    <option value="">Pilih Jabatan</option>
+                    <option value="">Pilih {{ \App\Helpers\OrganizationHelper::term('position') }}</option>
                     @foreach ($filters['roles'] ?? [] as $role)
                         <option value="{{ $role->jabatan_id }}" {{ old('jabatan_id', $employee->jabatan_id) == $role->jabatan_id ? 'selected' : '' }}>{{ $role->nama_jabatan }}</option>
                     @endforeach
                 </select>
                 @error('jabatan_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
+            @endhasfeature
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Role Akses</label>
                 @php
@@ -75,7 +79,7 @@
                     @else
                         <option value="HR / HRD" {{ $currentRole == 'HR / HRD' ? 'selected' : '' }}>HR / HRD</option>
                         <option value="Direktur" {{ $currentRole == 'Direktur' ? 'selected' : '' }}>Direktur</option>
-                        <option value="Anggota" {{ $currentRole == 'Anggota' ? 'selected' : '' }}>Anggota</option>
+                        <option value="Anggota" {{ $currentRole == 'Anggota' ? 'selected' : '' }}>{{ \App\Helpers\OrganizationHelper::term('member') }}</option>
                     @endif
                 </select>
                 @error('role')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror

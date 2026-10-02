@@ -17,7 +17,14 @@ class DashboardControllers extends Controller
     public function admin(Request $request)
     {
         $orgId = OrganizationHelper::requireActiveOrganization();
+        $org   = OrganizationHelper::getActiveOrganization();
         $today = now()->toDateString();
+
+        // Feature flags for active organization:
+        // Corporate work mode (WFO/WFH/WFC) is part of the corporate employee feature domain
+        $hasWfoWfh   = $org ? ($org->hasFeature('wfo_wfh') || $org->hasFeature('employee')) : false;
+        $hasApproval = $org ? $org->hasFeature('approval') : false;
+        $hasSchedule = $org ? $org->hasFeature('schedule') : false;
 
         $totalPegawai = Pegawai::where('organization_id', $orgId)
             ->whereDoesntHave('akun', function ($query) {
@@ -31,20 +38,25 @@ class DashboardControllers extends Controller
             ->distinct('pegawai_id')
             ->count('pegawai_id');
 
-        $wfoCount = Attendance::whereHas('pegawai', function ($q) use ($orgId) {
-                $q->where('organization_id', $orgId);
-            })
-            ->whereDate('tanggal_absensi', $today)
-            ->where('skema_kerja', 'WFO')
-            ->distinct('pegawai_id')
-            ->count('pegawai_id');
+        // Conditional Query: Work Mode statistics (WFO / WFH / WFC) only queried if wfo_wfh feature is enabled
+        $wfoCount = 0;
+        $wfhWfcCount = 0;
+        if ($hasWfoWfh) {
+            $wfoCount = Attendance::whereHas('pegawai', function ($q) use ($orgId) {
+                    $q->where('organization_id', $orgId);
+                })
+                ->whereDate('tanggal_absensi', $today)
+                ->where('skema_kerja', 'WFO')
+                ->distinct('pegawai_id')
+                ->count('pegawai_id');
 
-        $wfhWfcCount = Attendance::whereHas('pegawai', function ($q) use ($orgId) {
-                $q->where('organization_id', $orgId);
-            })
-            ->whereDate('tanggal_absensi', $today)
-            ->whereIn('skema_kerja', ['WFH', 'WFC'])
-            ->count();
+            $wfhWfcCount = Attendance::whereHas('pegawai', function ($q) use ($orgId) {
+                    $q->where('organization_id', $orgId);
+                })
+                ->whereDate('tanggal_absensi', $today)
+                ->whereIn('skema_kerja', ['WFH', 'WFC'])
+                ->count();
+        }
 
         $liveCheckIns = Attendance::whereHas('pegawai', function ($q) use ($orgId) {
                 $q->where('organization_id', $orgId);
@@ -55,37 +67,65 @@ class DashboardControllers extends Controller
             ->orderByDesc('jam_checkin')
             ->limit(5)
             ->get()
-            ->map(function ($attendance) {
+            ->map(function ($attendance) use ($hasWfoWfh) {
                 return [
                     'nama'   => $attendance->pegawai?->nama_pegawai ?? 'Unknown',
                     'foto'   => $attendance->pegawai?->foto_profile
                         ? supabase_public_url($attendance->pegawai->foto_profile)
                         : null,
-                    'status' => $attendance->skema_kerja ?? 'WFO',
+                    'status' => $hasWfoWfh ? ($attendance->skema_kerja ?? 'WFO') : 'Hadir',
                     'jam'    => $attendance->jam_checkin
                         ? Carbon::parse($attendance->jam_checkin)->format('H:i')
                         : '-',
                 ];
             });
 
-        $pendingApprovals = Approval::whereHas('pegawai', function ($q) use ($orgId) {
-                $q->where('organization_id', $orgId);
-            })
-            ->where('status_pengajuan', 'Pending')
-            ->with('pegawai')
-            ->orderByDesc('tanggal_pengajuan')
-            ->limit(4)
-            ->get()
-            ->map(function ($approval) {
-                return [
-                    'nama'     => $approval->pegawai?->nama_pegawai ?? 'Unknown',
-                    'jenis'    => $approval->jenis_pengajuan ?? '-',
-                    'tanggal'  => $approval->tanggal_pengajuan
-                        ? Carbon::parse($approval->tanggal_pengajuan)->translatedFormat('d F Y')
-                        : '-',
-                    'status'   => $approval->status_pengajuan ?? 'Pending',
-                ];
-            });
+        // Conditional Query: Pending Approvals queried ONLY if approval feature is enabled
+        $pendingApprovals = collect();
+        $pendingApprovalsCount = 0;
+        $approvalBreakdown = [
+            'Cuti'  => 0,
+            'Izin'  => 0,
+            'Sakit' => 0,
+            'WFH'   => 0,
+        ];
+
+        if ($hasApproval) {
+            $pendingApprovals = Approval::whereHas('pegawai', function ($q) use ($orgId) {
+                    $q->where('organization_id', $orgId);
+                })
+                ->where('status_pengajuan', 'Pending')
+                ->with('pegawai')
+                ->orderByDesc('tanggal_pengajuan')
+                ->limit(4)
+                ->get()
+                ->map(function ($approval) {
+                    return [
+                        'nama'     => $approval->pegawai?->nama_pegawai ?? 'Unknown',
+                        'jenis'    => $approval->jenis_pengajuan ?? '-',
+                        'tanggal'  => $approval->tanggal_pengajuan
+                            ? Carbon::parse($approval->tanggal_pengajuan)->translatedFormat('d F Y')
+                            : '-',
+                        'status'   => $approval->status_pengajuan ?? 'Pending',
+                    ];
+                });
+
+            // Summary breakdown for approval widget
+            $counts = Approval::whereHas('pegawai', function ($q) use ($orgId) {
+                    $q->where('organization_id', $orgId);
+                })
+                ->where('status_pengajuan', 'Pending')
+                ->selectRaw('jenis_pengajuan, count(*) as total')
+                ->groupBy('jenis_pengajuan')
+                ->pluck('total', 'jenis_pengajuan')
+                ->toArray();
+
+            $approvalBreakdown['Cuti']  = $counts['Cuti'] ?? 0;
+            $approvalBreakdown['Izin']  = $counts['Izin'] ?? 0;
+            $approvalBreakdown['Sakit'] = $counts['Sakit'] ?? 0;
+            $approvalBreakdown['WFH']   = $counts['WFH'] ?? ($counts['WFH/WFC'] ?? 0);
+            $pendingApprovalsCount = array_sum($counts);
+        }
 
         $activities = AuditLog::query()
             ->whereHas('akun.pegawai', function ($q) use ($orgId) {
@@ -114,12 +154,19 @@ class DashboardControllers extends Controller
             ]]);
         }
 
-        $jadwal = DB::table('jadwal_kerja')
-            ->where('organization_id', $orgId)
-            ->orderByDesc('jadwal_id')
-            ->first();
-        $jamMasuk = $jadwal ? Carbon::parse($jadwal->jam_masuk)->format('H:i') : '08:00';
-        $jamPulang = $jadwal ? Carbon::parse($jadwal->jam_pulang)->format('H:i') : '17:00';
+        // Conditional Query: Schedule times
+        $jamMasuk  = '08:00';
+        $jamPulang = '17:00';
+        if ($hasSchedule) {
+            $jadwal = DB::table('jadwal_kerja')
+                ->where('organization_id', $orgId)
+                ->orderByDesc('jadwal_id')
+                ->first();
+            if ($jadwal) {
+                $jamMasuk  = Carbon::parse($jadwal->jam_masuk)->format('H:i');
+                $jamPulang = Carbon::parse($jadwal->jam_pulang)->format('H:i');
+            }
+        }
 
         return view('admin.index', compact(
             'totalPegawai',
@@ -128,9 +175,14 @@ class DashboardControllers extends Controller
             'wfhWfcCount',
             'liveCheckIns',
             'pendingApprovals',
+            'pendingApprovalsCount',
+            'approvalBreakdown',
             'activities',
             'jamMasuk',
-            'jamPulang'
+            'jamPulang',
+            'hasWfoWfh',
+            'hasApproval',
+            'hasSchedule'
         ));
     }
 
@@ -141,17 +193,29 @@ class DashboardControllers extends Controller
     public function chartStatistik(Request $request)
     {
         $orgId = OrganizationHelper::requireActiveOrganization();
-        
-        $filter = $request->query('filter', 'minggu');
-        $skemas = ['WFO', 'WFH/WFC', 'Izin', 'Alfa', 'Dinas'];
+        $org   = OrganizationHelper::getActiveOrganization();
+        $hasWfoWfh = $org ? ($org->hasFeature('wfo_wfh') || $org->hasFeature('employee')) : false;
 
-        $tipeExpr = DB::raw("CASE
-            WHEN skema_kerja IN ('WFH','WFC') THEN 'WFH/WFC'
-            WHEN status_kehadiran = 'Izin'   THEN 'Izin'
-            WHEN status_kehadiran = 'Alfa'   THEN 'Alfa'
-            WHEN skema_kerja = 'Dinas'       THEN 'Dinas'
-            ELSE skema_kerja
-        END AS tipe");
+        $filter = $request->query('filter', 'minggu');
+
+        // Dynamic categories depending on wfo_wfh capability
+        $skemas = $hasWfoWfh
+            ? ['WFO', 'WFH/WFC', 'Izin', 'Alfa', 'Dinas']
+            : ['Hadir', 'Izin', 'Alfa'];
+
+        $tipeExpr = $hasWfoWfh
+            ? DB::raw("CASE
+                WHEN skema_kerja IN ('WFH','WFC') THEN 'WFH/WFC'
+                WHEN status_kehadiran = 'Izin'   THEN 'Izin'
+                WHEN status_kehadiran = 'Alfa'   THEN 'Alfa'
+                WHEN skema_kerja = 'Dinas'       THEN 'Dinas'
+                ELSE COALESCE(skema_kerja, 'WFO')
+            END AS tipe")
+            : DB::raw("CASE
+                WHEN status_kehadiran = 'Izin' THEN 'Izin'
+                WHEN status_kehadiran = 'Alfa' THEN 'Alfa'
+                ELSE 'Hadir'
+            END AS tipe");
 
         if ($filter === 'minggu') {
             $start    = Carbon::now()->startOfWeek(Carbon::MONDAY);

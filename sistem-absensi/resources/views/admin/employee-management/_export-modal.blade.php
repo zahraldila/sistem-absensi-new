@@ -1,3 +1,12 @@
+@php
+    $org = $org ?? \App\Helpers\OrganizationHelper::active();
+    $hasDivision = $hasDivision ?? ($org?->hasFeature('division') ?? false);
+    $hasPosition = $hasPosition ?? ($org?->hasFeature('position') ?? false);
+    $memberTerm = $memberTerm ?? \App\Helpers\OrganizationHelper::term('member', 'Anggota');
+    $divisionTerm = $divisionTerm ?? \App\Helpers\OrganizationHelper::term('division', 'Divisi');
+    $positionTerm = $positionTerm ?? \App\Helpers\OrganizationHelper::term('position', 'Jabatan');
+@endphp
+
 <div x-show="exportModalOpen"
     x-cloak
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
@@ -8,7 +17,7 @@
             <div class="flex items-center justify-between border-b border-slate-200 px-5 sm:px-8 py-5 sm:py-6">
                 <div>
                     <h2 class="text-base sm:text-lg font-bold text-slate-900">Export Data Akun</h2>
-                    <p class="mt-1 text-xs sm:text-sm text-slate-500">Pilih format dan filter untuk unduh data akun anggota.</p>
+                    <p class="mt-1 text-xs sm:text-sm text-slate-500">Pilih format dan filter untuk unduh data akun {{ strtolower($memberTerm) }}.</p>
                 </div>
                 <button type="button" class="flex items-center justify-center rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" @click="closeExport()" aria-label="Tutup modal">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -26,7 +35,7 @@
                                 <input type="radio" name="format" value="xlsx" class="mt-1 h-4 w-4 text-primary focus:ring-primary" checked />
                                 <div class="flex-1">
                                     <p class="text-sm font-medium text-slate-900">Excel (.xlsx)</p>
-                                    <p class="text-xs text-slate-500">Unduh file Excel dengan data akun anggota.</p>
+                                    <p class="text-xs text-slate-500">Unduh file Excel dengan data akun {{ strtolower($memberTerm) }}.</p>
                                 </div>
                             </label>
 
@@ -59,24 +68,28 @@
                                     <option value="Nonaktif">Nonaktif</option>
                                 </select>
                             </div>
+                            @hasfeature('division')
                             <div>
-                                <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Divisi</label>
+                                <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">{{ $divisionTerm }}</label>
                                 <select name="divisi_id" class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-primary focus:ring-primary">
                                     <option value="">Semua</option>
-                                    @foreach($filters['divisions'] as $div)
+                                    @foreach($filters['divisions'] ?? [] as $div)
                                         <option value="{{ $div->divisi_id }}">{{ $div->nama_divisi }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            @endhasfeature
+                            @hasfeature('position')
                             <div>
-                                <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">Jabatan</label>
+                                <label class="mb-1 block text-xs sm:text-sm font-medium text-slate-700">{{ $positionTerm }}</label>
                                 <select name="jabatan_id" class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-primary focus:ring-primary">
                                     <option value="">Semua</option>
-                                    @foreach($filters['roles'] as $r)
+                                    @foreach($filters['roles'] ?? [] as $r)
                                         <option value="{{ $r->jabatan_id }}">{{ $r->nama_jabatan }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            @endhasfeature
                         </div>
                     </div>
                 </div>

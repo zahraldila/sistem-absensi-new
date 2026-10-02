@@ -38,22 +38,40 @@ class ApprovalControllers extends Controller
     public function index(Request $request)
     {
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
-        
-        $pending = Approval::whereHas('pegawai', function($q) use ($orgId) {
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasWfoWfh = $org?->hasFeature('wfo_wfh') ?? false;
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $workModeTypes = ['WFH', 'WFC', 'Dinas'];
+
+        $pendingQuery = Approval::whereHas('pegawai', function($q) use ($orgId) {
             $q->where('organization_id', $orgId);
-        })->whereIn('status_pengajuan', ['Pending', 'Menunggu'])->count();
-    
-        $disetujui = Approval::whereHas('pegawai', function($q) use ($orgId) {
+        })->whereIn('status_pengajuan', ['Pending', 'Menunggu']);
+
+        $disetujuiQuery = Approval::whereHas('pegawai', function($q) use ($orgId) {
             $q->where('organization_id', $orgId);
-        })->where('status_pengajuan', 'Disetujui')->count();
-    
-        $ditolak = Approval::whereHas('pegawai', function($q) use ($orgId) {
+        })->where('status_pengajuan', 'Disetujui');
+
+        $ditolakQuery = Approval::whereHas('pegawai', function($q) use ($orgId) {
             $q->where('organization_id', $orgId);
-        })->where('status_pengajuan', 'Ditolak')->count();
+        })->where('status_pengajuan', 'Ditolak');
+
+        if (!$hasWfoWfh) {
+            $pendingQuery->whereNotIn('jenis_pengajuan', $workModeTypes);
+            $disetujuiQuery->whereNotIn('jenis_pengajuan', $workModeTypes);
+            $ditolakQuery->whereNotIn('jenis_pengajuan', $workModeTypes);
+        }
+
+        $pending = $pendingQuery->count();
+        $disetujui = $disetujuiQuery->count();
+        $ditolak = $ditolakQuery->count();
     
         $query = Approval::with('pegawai.masterDivisi')->whereHas('pegawai', function($q) use ($orgId) {
             $q->where('organization_id', $orgId);
         });
+
+        if (!$hasWfoWfh) {
+            $query->whereNotIn('jenis_pengajuan', $workModeTypes);
+        }
     
         /*
         |--------------------------------------------------------------------------
@@ -93,7 +111,11 @@ class ApprovalControllers extends Controller
         }
 
         if ($jenis) {
-            $query->where('jenis_pengajuan', $jenis);
+            if (!$hasWfoWfh && in_array($jenis, $workModeTypes, true)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('jenis_pengajuan', $jenis);
+            }
         }
 
         if ($tanggalAwal) {
@@ -119,12 +141,18 @@ class ApprovalControllers extends Controller
             ->paginate(5)
             ->withQueryString();
 
-        $jenisPengajuan = Approval::query()
+        $jenisPengajuanQuery = Approval::query()
             ->whereHas('pegawai', function($q) use ($orgId) {
                 $q->where('organization_id', $orgId);
             })
             ->whereNotNull('jenis_pengajuan')
-            ->where('jenis_pengajuan', '!=', '')
+            ->where('jenis_pengajuan', '!=', '');
+
+        if (!$hasWfoWfh) {
+            $jenisPengajuanQuery->whereNotIn('jenis_pengajuan', $workModeTypes);
+        }
+
+        $jenisPengajuan = $jenisPengajuanQuery
             ->select('jenis_pengajuan')
             ->distinct()
             ->orderBy('jenis_pengajuan')
@@ -168,10 +196,13 @@ class ApprovalControllers extends Controller
             ->orderBy('nama_pegawai')
             ->get(['pegawai_id', 'nama_pegawai']);
 
-        $jenisOptions = [
+        $allJenis = [
             'WFH', 'WFC', 'Sakit', 'Izin', 'Cuti', 'Dinas',
             'Tidak Masuk', 'Lainnya',
         ];
+        $jenisOptions = $hasWfoWfh
+            ? $allJenis
+            : array_values(array_diff($allJenis, $workModeTypes));
 
         return view(
             'admin.persetujuan.index',
@@ -184,7 +215,9 @@ class ApprovalControllers extends Controller
                 'jenisPengajuan',
                 'pegawai',
                 'pegawaiOptions',
-                'jenisOptions'
+                'jenisOptions',
+                'hasWfoWfh',
+                'hasDivision'
             )
         );
     }
@@ -386,14 +419,18 @@ class ApprovalControllers extends Controller
             'tanggal_akhir' => !empty($filters['tanggal_akhir']) ? Carbon::parse($filters['tanggal_akhir'])->translatedFormat('d F Y') : 'Semua',
         ];
 
-        $org = \App\Models\Organization::find($orgId);
-        $organizationName = $org->name ?? $org->nama ?? 'ORGANISASI';
+        $org = \App\Helpers\OrganizationHelper::active();
+        $organizationName = $org->name ?? $org->nama_organisasi ?? 'ORGANISASI';
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasWfoWfh = $org?->hasFeature('wfo_wfh') ?? false;
 
         $pdf = app('dompdf.wrapper')->loadView('admin.persetujuan.export-pdf', [
             'rows' => $rows,
             'filters' => $filterLabels,
             'generatedAt' => now()->translatedFormat('d F Y H:i'),
             'organizationName' => $organizationName,
+            'hasDivision' => $hasDivision,
+            'hasWfoWfh' => $hasWfoWfh,
         ])->setPaper('a4', 'landscape');
 
         $filename = 'persetujuan-' . now()->format('Ymd_His') . '.pdf';
@@ -403,9 +440,18 @@ class ApprovalControllers extends Controller
 
     public function show(Approval $approval)
     {
+        $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
+        if ($approval->pegawai?->organization_id !== $orgId) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasWfoWfh = $org?->hasFeature('wfo_wfh') ?? false;
+
         return view(
             'admin.persetujuan.detail',
-            compact('approval')
+            compact('approval', 'hasDivision', 'hasWfoWfh')
         );
     }
 
@@ -495,10 +541,23 @@ class ApprovalControllers extends Controller
             );
 
             // Ambil data statistik counter terkini
+            $hasWfoWfh = \App\Helpers\OrganizationHelper::active()?->hasFeature('wfo_wfh') ?? false;
+            $workModeTypes = ['WFH', 'WFC', 'Dinas'];
+
+            $pendingQuery = DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->whereIn('status_pengajuan', ['Pending', 'Menunggu']);
+            $disetujuiQuery = DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Disetujui');
+            $ditolakQuery = DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Ditolak');
+
+            if (!$hasWfoWfh) {
+                $pendingQuery->whereNotIn('pengajuan.jenis_pengajuan', $workModeTypes);
+                $disetujuiQuery->whereNotIn('pengajuan.jenis_pengajuan', $workModeTypes);
+                $ditolakQuery->whereNotIn('pengajuan.jenis_pengajuan', $workModeTypes);
+            }
+
             $counts = [
-                'pending'   => DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->whereIn('status_pengajuan', ['Pending', 'Menunggu'])->count(),
-                'disetujui' => DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Disetujui')->count(),
-                'ditolak'   => DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Ditolak')->count(),
+                'pending'   => $pendingQuery->count(),
+                'disetujui' => $disetujuiQuery->count(),
+                'ditolak'   => $ditolakQuery->count(),
             ];
 
             return response()->json([
@@ -613,10 +672,23 @@ class ApprovalControllers extends Controller
             );
 
             // Ambil data statistik counter terkini
+            $hasWfoWfh = \App\Helpers\OrganizationHelper::active()?->hasFeature('wfo_wfh') ?? false;
+            $workModeTypes = ['WFH', 'WFC', 'Dinas'];
+
+            $pendingQuery = DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->whereIn('status_pengajuan', ['Pending', 'Menunggu']);
+            $disetujuiQuery = DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Disetujui');
+            $ditolakQuery = DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Ditolak');
+
+            if (!$hasWfoWfh) {
+                $pendingQuery->whereNotIn('pengajuan.jenis_pengajuan', $workModeTypes);
+                $disetujuiQuery->whereNotIn('pengajuan.jenis_pengajuan', $workModeTypes);
+                $ditolakQuery->whereNotIn('pengajuan.jenis_pengajuan', $workModeTypes);
+            }
+
             $counts = [
-                'pending'   => DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->whereIn('status_pengajuan', ['Pending', 'Menunggu'])->count(),
-                'disetujui' => DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Disetujui')->count(),
-                'ditolak'   => DB::table('pengajuan')->join('pegawai', 'pegawai.pegawai_id', '=', 'pengajuan.pegawai_id')->where('pegawai.organization_id', $orgId)->where('status_pengajuan', 'Ditolak')->count(),
+                'pending'   => $pendingQuery->count(),
+                'disetujui' => $disetujuiQuery->count(),
+                'ditolak'   => $ditolakQuery->count(),
             ];
 
             return response()->json([
@@ -643,8 +715,22 @@ class ApprovalControllers extends Controller
     {
         $status = $request->input('status_approval');
         if ($status === 'Disetujui') {
+            $user = Auth::user();
+            if ($user && !$user->isSuperAdmin()) {
+                $role = $user->roleAkses;
+                if (!$role || !$role->hasPrivilege('approve_pengajuan')) {
+                    abort(403, 'Akses ditolak: Anda tidak memiliki privilege [approve_pengajuan].');
+                }
+            }
             return $this->approve($request, $pengajuanId);
         } elseif ($status === 'Ditolak') {
+            $user = Auth::user();
+            if ($user && !$user->isSuperAdmin()) {
+                $role = $user->roleAkses;
+                if (!$role || !$role->hasPrivilege('reject_pengajuan')) {
+                    abort(403, 'Akses ditolak: Anda tidak memiliki privilege [reject_pengajuan].');
+                }
+            }
             return $this->reject($request, $pengajuanId);
         }
 
@@ -669,6 +755,8 @@ class ApprovalControllers extends Controller
 
         $orgId = \App\Helpers\OrganizationHelper::requireActiveOrganization();
 
+        $memberTerm = \App\Helpers\OrganizationHelper::term('member', 'Anggota');
+
         // Validasi input
         $request->validate([
             'pegawai_id' => 'required|integer',
@@ -676,7 +764,7 @@ class ApprovalControllers extends Controller
             'jenis'      => 'required|string|max:50',
             'keterangan' => 'nullable|string|max:2000',
         ], [
-            'pegawai_id.required' => 'Anggota wajib dipilih.',
+            'pegawai_id.required' => "{$memberTerm} wajib dipilih.",
             'tanggal.required'    => 'Tanggal wajib diisi.',
             'jenis.required'      => 'Jenis catatan wajib dipilih.',
         ]);
@@ -694,7 +782,7 @@ class ApprovalControllers extends Controller
 
         if (! $pegawai) {
             return back()
-                ->withErrors(['pegawai_id' => 'Anggota tidak ditemukan atau bukan milik organisasi Anda.'])
+                ->withErrors(['pegawai_id' => "{$memberTerm} tidak ditemukan atau bukan milik organisasi Anda."])
                 ->withInput();
         }
 
@@ -705,10 +793,18 @@ class ApprovalControllers extends Controller
                 ->withInput();
         }
 
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasWfoWfh = $org?->hasFeature('wfo_wfh') ?? false;
+        $workModeTypes = ['WFH', 'WFC', 'Dinas'];
+
         $allowedJenis = ['WFH', 'WFC', 'Sakit', 'Izin', 'Cuti', 'Dinas', 'Tidak Masuk', 'Lainnya'];
+        if (!$hasWfoWfh) {
+            $allowedJenis = array_values(array_diff($allowedJenis, $workModeTypes));
+        }
+
         if (!in_array($jenis, $allowedJenis, true)) {
             return back()
-                ->withErrors(['jenis' => 'Jenis catatan tidak valid. Pilihan yang diizinkan: ' . implode(', ', $allowedJenis)])
+                ->withErrors(['jenis' => 'Jenis catatan tidak valid atau fitur tidak aktif. Pilihan yang diizinkan: ' . implode(', ', $allowedJenis)])
                 ->withInput();
         }
 

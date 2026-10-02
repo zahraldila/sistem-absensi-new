@@ -31,7 +31,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 {{-- Search Input --}}
                 <div class="flex-1 min-w-0">
-                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari Anggota</label>
+                    <label class="mb-1 block text-xs sm:text-sm font-medium text-gray-700">Cari {{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}</label>
                     <div class="relative mt-1">
                         <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-gray-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -45,7 +45,7 @@
                             name="search"
                             type="text"
                             value="{{ request('search') }}"
-                            placeholder="Cari nama, divisi, status, atau lokasi..."
+                            placeholder="Cari nama, status, atau lokasi..."
                             class="w-full rounded-2xl border border-gray-300 bg-white py-2.5 sm:py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                 </div>
@@ -75,23 +75,27 @@
                                     <option value="Tidak Hadir" {{ request('status') === 'Tidak Hadir' ? 'selected' : '' }}>Tidak Hadir</option>
                                 </x-forms.select>
 
-                                <x-forms.select name="divisi_id" label="Divisi">
+                                @hasfeature('division')
+                                <x-forms.select name="divisi_id" :label="\App\Helpers\OrganizationHelper::term('division', 'Divisi')">
                                     <option value="Semua" {{ request('divisi_id') === 'Semua' ? 'selected' : '' }}>Semua</option>
                                     @foreach($divisions as $division)
                                         <option value="{{ $division->divisi_id }}" {{ (string) request('divisi_id') === (string) $division->divisi_id ? 'selected' : '' }}>{{ $division->nama_divisi }}</option>
                                     @endforeach
                                 </x-forms.select>
+                                @endhasfeature
 
                                 <div class="grid gap-3 grid-cols-1 sm:grid-cols-2">
                                     <x-forms.date-picker name="start_date" label="Tanggal Awal" value="{{ request('start_date') }}" />
                                     <x-forms.date-picker name="end_date" label="Tanggal Akhir" value="{{ request('end_date') }}" />
                                 </div>
 
+                                @hasfeature('wfo_wfh')
                                 <x-forms.select name="mode_kerja" label="Mode Kerja">
                                     <option value="Semua" {{ request('mode_kerja') === 'Semua' ? 'selected' : '' }}>Semua</option>
-                                    <option value="WFO" {{ request('mode_kerja') === 'WFH' ? 'selected' : '' }}>WFO</option>
+                                    <option value="WFO" {{ request('mode_kerja') === 'WFO' ? 'selected' : '' }}>WFO</option>
                                     <option value="WFH" {{ request('mode_kerja') === 'WFH' ? 'selected' : '' }}>WFH</option>
                                 </x-forms.select>
+                                @endhasfeature
                             </div>
 
                             <div class="mt-4 flex items-center justify-end gap-2 border-t border-slate-200 pt-3">
@@ -162,7 +166,9 @@
                         @endif
                         <div class="min-w-0">
                             <h3 class="truncate text-sm font-bold text-slate-900">{{ $attendance->pegawai?->nama_pegawai ?? '-' }}</h3>
+                            @hasfeature('division')
                             <p class="text-xs text-slate-500">{{ $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-' }}</p>
+                            @endhasfeature
                         </div>
                     </div>
                     <div class="flex-shrink-0">
@@ -177,10 +183,12 @@
                         <p class="font-medium text-slate-800 mt-0.5">{{ \Carbon\Carbon::parse($attendance->tanggal_absensi)->translatedFormat('d M Y') }}</p>
                     </div>
 
+                    @hasfeature('wfo_wfh')
                     <div class="rounded-xl bg-slate-50 p-2.5">
                         <p class="text-slate-400 text-[10px] uppercase font-semibold">Mode Kerja</p>
                         <p class="font-medium text-slate-800 mt-0.5">{{ $attendance->skema_kerja ?? '-' }}</p>
                     </div>
+                    @endhasfeature
 
                     <div class="rounded-xl bg-slate-50 p-2.5">
                         <p class="text-slate-400 text-[10px] uppercase font-semibold">Jam Masuk / Pulang</p>
@@ -229,13 +237,17 @@
             <table class="w-full min-w-[950px] divide-y divide-gray-200 text-left text-sm">
                 <thead class="bg-gray-50/80">
                     <tr>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Anggota</th>
-                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Divisi</th>
+                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}</th>
+                        @hasfeature('division')
+                        <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ \App\Helpers\OrganizationHelper::term('division', 'Divisi') }}</th>
+                        @endhasfeature
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Tanggal</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Masuk</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Keluar</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Durasi</th>
+                        @hasfeature('wfo_wfh')
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Mode</th>
+                        @endhasfeature
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Lokasi</th>
                         <th class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
                     </tr>
@@ -260,9 +272,11 @@
                                 </div>
                             </td>
 
+                            @hasfeature('division')
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
                                 {{ $attendance->pegawai?->masterDivisi?->nama_divisi ?? '-' }}
                             </td>
+                            @endhasfeature
 
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ \Carbon\Carbon::parse($attendance->tanggal_absensi)->translatedFormat('d F Y') }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-800">{{ $attendance->jam_checkin ? \Carbon\Carbon::parse($attendance->jam_checkin)->format('H:i') : '-' }}</td>
@@ -279,19 +293,24 @@
                                     }
                                 @endphp
                             </td>
+                            @hasfeature('wfo_wfh')
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
                                 <span class="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                                     {{ $attendance->skema_kerja ?? '-' }}
                                 </span>
                             </td>
+                            @endhasfeature
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ $attendance->latitude !== null && $attendance->longitude !== null ? $attendance->latitude . ', ' . $attendance->longitude : '-' }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm">
                                 <x-status-badge :status="$attendance->status_kehadiran ?? '-'" />
                             </td>
                         </tr>
                     @empty
+                        @php
+                            $tableColspan = 7 + (!empty($hasDivision) ? 1 : 0) + (!empty($hasWfoWfh) ? 1 : 0);
+                        @endphp
                         <tr>
-                            <td colspan="9" class="px-4 py-12 text-center text-sm text-gray-500">
+                            <td colspan="{{ $tableColspan }}" class="px-4 py-12 text-center text-sm text-gray-500">
                                 Tidak ada data kehadiran.
                             </td>
                         </tr>
@@ -401,7 +420,9 @@
 
                 <div class="space-y-5 sm:space-y-6 px-5 sm:px-8 py-5 sm:py-6">
                     <input type="hidden" name="search" value="{{ request('search') }}" />
+                    @hasfeature('wfo_wfh')
                     <input type="hidden" name="mode_kerja" value="{{ request('mode_kerja') }}" />
+                    @endhasfeature
 
                     <div class="grid gap-5 sm:gap-6 grid-cols-1 md:grid-cols-2">
                         <div class="space-y-3 sm:space-y-4">
@@ -452,19 +473,21 @@
                             <option value="Tidak Hadir" {{ request('status') === 'Tidak Hadir' ? 'selected' : '' }}>Tidak Hadir</option>
                         </x-forms.select>
 
-                        <x-forms.select name="divisi_id" label="Divisi">
+                        @hasfeature('division')
+                        <x-forms.select name="divisi_id" :label="\App\Helpers\OrganizationHelper::term('division', 'Divisi')">
                             <option value="Semua" {{ request('divisi_id') === 'Semua' ? 'selected' : '' }}>Semua</option>
                             @foreach($divisions as $division)
                                 <option value="{{ $division->divisi_id }}" {{ (string) request('divisi_id') === (string) $division->divisi_id ? 'selected' : '' }}>{{ $division->nama_divisi }}</option>
                             @endforeach
                         </x-forms.select>
+                        @endhasfeature
 
                         @php
                             $pegawaiOptions = $pegawaiList->map(function($p) {
                                 return ['value' => $p->pegawai_id, 'text' => $p->nama_pegawai];
                             })->toArray();
                         @endphp
-                        <x-forms.searchable-select name="pegawai_id" label="Anggota" :options="$pegawaiOptions"
+                        <x-forms.searchable-select name="pegawai_id" :label="\App\Helpers\OrganizationHelper::term('member', 'Anggota')" :options="$pegawaiOptions"
                             class="w-full rounded-3xl border border-slate-200 bg-white pl-4 pr-4 py-3 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200" 
                             selected="{{ request('pegawai_id', '') }}" />
                     </div>
@@ -523,8 +546,10 @@
                         const statusSelect = this.$refs.exportForm.querySelector('select[name="status"]');
                         if (statusSelect) statusSelect.value = '{{ request('status', 'Semua') }}';
 
+                        @hasfeature('division')
                         const divisiSelect = this.$refs.exportForm.querySelector('select[name="divisi_id"]');
                         if (divisiSelect) divisiSelect.value = '{{ request('divisi_id', 'Semua') }}';
+                        @endhasfeature
 
                         const searchableSelects = this.$refs.exportForm.querySelectorAll('[x-data]');
                         searchableSelects.forEach(el => {

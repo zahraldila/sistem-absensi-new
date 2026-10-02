@@ -101,6 +101,7 @@
             </span>
         @endif
 
+        @hasanyfeature(['location', 'gps'])
         @if($canLokasi)
             <a href="{{ route('admin.tampilan-branding', ['tab' => 'lokasi']) }}"
                class="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold transition {{ $activeTab === 'lokasi' ? 'bg-primary text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200' }}">
@@ -116,6 +117,7 @@
                 <span class="ml-1 px-2.5 py-0.5 rounded-full text-xs bg-slate-100 text-slate-400">{{ count($daftarLokasi) }}</span>
             </span>
         @endif
+        @endhasanyfeature
 
         @if($canRoles)
             <a href="{{ route('admin.tampilan-branding', ['tab' => 'roles']) }}"
@@ -427,6 +429,7 @@
     {{-- TAB 2: LOKASI KANTOR & CABANG (DYNAMIC CRUD) --}}
     {{-- ======================================================== --}}
     @if($activeTab === 'lokasi')
+    @hasanyfeature(['location', 'gps'])
     <div class="space-y-6">
 
         {{-- Top Description & Quick Guide --}}
@@ -434,7 +437,7 @@
             <div>
                 <h2 class="text-lg font-bold text-slate-800">Manajemen Lokasi Kantor & Cabang</h2>
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Setiap kantor cabang yang ditambahkan di sini akan <strong class="text-slate-700">otomatis muncul sebagai tab di Dashboard TV</strong> dan digunakan untuk verifikasi radius geo-location presensi pegawai.
+                    Setiap kantor cabang yang ditambahkan di sini akan <strong class="text-slate-700">otomatis muncul sebagai tab di Dashboard TV</strong> dan digunakan untuk verifikasi radius geo-location presensi {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'pegawai')) }}.
                 </p>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
@@ -530,6 +533,7 @@
             </div>
             @endforelse
     </div>
+    @endhasanyfeature
     @endif
 
     {{-- ======================================================== --}}

@@ -28,12 +28,22 @@ class EmployeeExportController extends Controller
             'pegawai_id' => 'nullable|integer',
         ]);
     
+        $org = \App\Helpers\OrganizationHelper::active();
+        $hasDivision = $org?->hasFeature('division') ?? false;
+        $hasPosition = $org?->hasFeature('position') ?? false;
+
         $filters = $request->only([
             'status',
-            'divisi_id',
-            'jabatan_id',
             'pegawai_id'
         ]);
+
+        if ($hasDivision && $request->filled('divisi_id')) {
+            $filters['divisi_id'] = $request->input('divisi_id');
+        }
+
+        if ($hasPosition && $request->filled('jabatan_id')) {
+            $filters['jabatan_id'] = $request->input('jabatan_id');
+        }
     
         $format = $request->input('format');
     

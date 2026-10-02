@@ -18,60 +18,62 @@
         <div>
 
             <h1 class="text-2xl sm:text-3xl lg:text-[34px] font-bold text-slate-900 leading-tight">
-                Dashboard Kehadiran Anggota
+                Dashboard Kehadiran {{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}
             </h1>
 
             <p class="mt-1.5 sm:mt-2 text-sm sm:text-[15px] text-slate-500">
-                Monitoring kehadiran anggota secara real-time.
+                Monitoring kehadiran {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }} secara real-time.
             </p>
 
         </div>
 
-        @if($canKelolaJadwal)
-            <button
-                @click="editJamOpen = true"
-                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 sm:px-6 py-3 text-sm font-semibold text-white transition duration-300 hover:bg-primary-hover flex-shrink-0 shadow-sm">
+        @hasfeature('schedule')
+            @if($canKelolaJadwal)
+                <button
+                    @click="editJamOpen = true"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 sm:px-6 py-3 text-sm font-semibold text-white transition duration-300 hover:bg-primary-hover flex-shrink-0 shadow-sm">
 
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor">
 
-                    <path stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 
-                </svg>
+                    </svg>
 
-                Edit Jam Masuk
+                    Edit Jam Masuk
 
-            </button>
-        @else
-            <button
-                type="button"
-                disabled
-                title="Anda tidak memiliki hak akses untuk mengelola jadwal kerja"
-                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-200 px-5 sm:px-6 py-3 text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none flex-shrink-0 shadow-none">
+                </button>
+            @else
+                <button
+                    type="button"
+                    disabled
+                    title="Anda tidak memiliki hak akses untuk mengelola jadwal kerja"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-200 px-5 sm:px-6 py-3 text-sm font-semibold text-slate-400 opacity-60 cursor-not-allowed select-none flex-shrink-0 shadow-none">
 
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5 text-slate-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 text-slate-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor">
 
-                    <path stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 
-                </svg>
+                    </svg>
 
-                Edit Jam Masuk
+                    Edit Jam Masuk
 
-            </button>
-        @endif
+                </button>
+            @endif
+        @endhasfeature
 
     </section>
 
@@ -125,14 +127,14 @@
     {{-- SUMMARY CARD --}}
     {{-- ===================================================== --}}
 
-    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+    <section class="grid grid-cols-1 sm:grid-cols-2 {{ $hasWfoWfh ? 'xl:grid-cols-4' : 'xl:grid-cols-2' }} gap-4 sm:gap-6">
 
-        {{-- Total Pegawai --}}
+        {{-- Total Anggota --}}
         <div class="rounded-3xl bg-blue-50 p-5 sm:p-6 shadow-sm border border-blue-100/50">
 
             <div class="flex items-start justify-between">
                 <p class="text-sm font-medium text-blue-600">
-                    Total Anggota
+                    Total {{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}
                 </p>
                 <div class="text-blue-500">
                     <i class="fa-solid fa-users fa-lg"></i>
@@ -144,7 +146,7 @@
                     {{ $totalPegawai }}
                 </h2>
                 <p class="mt-2 text-xs font-medium text-blue-400">
-                    Total anggota aktif
+                    Total {{ strtolower(\App\Helpers\OrganizationHelper::term('member', 'anggota')) }} aktif
                 </p>
             </div>
 
@@ -167,57 +169,59 @@
                     {{ $hadirHariIni }}
                 </h2>
                 <p class="mt-2 text-xs font-medium text-green-500">
-                    Anggota sudah check in
+                    {{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }} sudah check in
                 </p>
             </div>
 
         </div>
 
-        {{-- WFO --}}
-        <div class="rounded-3xl bg-white p-5 sm:p-6 shadow-card">
+        @if($hasWfoWfh)
+            {{-- WFO --}}
+            <div class="rounded-3xl bg-white p-5 sm:p-6 shadow-card">
 
-            <div class="flex items-start justify-between">
-                <p class="text-sm font-medium text-slate-700">
-                    WFO
-                </p>
-                <div class="text-slate-400">
-                    <i class="fa-solid fa-building fa-lg"></i>
+                <div class="flex items-start justify-between">
+                    <p class="text-sm font-medium text-slate-700">
+                        WFO
+                    </p>
+                    <div class="text-slate-400">
+                        <i class="fa-solid fa-building fa-lg"></i>
+                    </div>
                 </div>
-            </div>
 
-            <div class="mt-4 text-center">
-                <h2 class="text-3xl sm:text-[36px] lg:text-[40px] leading-none font-bold text-slate-800">
-                    {{ $wfoCount }}
-                </h2>
-                <p class="mt-2 text-xs font-medium text-slate-400">
-                    Work From Office
-                </p>
-            </div>
-
-        </div>
-
-        {{-- WFH/WFC --}}
-        <div class="rounded-3xl bg-orange-50 p-5 sm:p-6 shadow-sm border border-orange-100/50">
-
-            <div class="flex items-start justify-between">
-                <p class="text-sm font-medium text-orange-600">
-                    WFH / WFC
-                </p>
-                <div class="text-orange-500">
-                    <i class="fa-solid fa-house-laptop fa-lg"></i>
+                <div class="mt-4 text-center">
+                    <h2 class="text-3xl sm:text-[36px] lg:text-[40px] leading-none font-bold text-slate-800">
+                        {{ $wfoCount }}
+                    </h2>
+                    <p class="mt-2 text-xs font-medium text-slate-400">
+                        Work From Office
+                    </p>
                 </div>
+
             </div>
 
-            <div class="mt-4 text-center">
-                <h2 class="text-3xl sm:text-[36px] lg:text-[40px] leading-none font-bold text-orange-600">
-                    {{ $wfhWfcCount }}
-                </h2>
-                <p class="mt-2 text-xs font-medium text-orange-400">
-                    Remote Working
-                </p>
-            </div>
+            {{-- WFH/WFC --}}
+            <div class="rounded-3xl bg-orange-50 p-5 sm:p-6 shadow-sm border border-orange-100/50">
 
-        </div>
+                <div class="flex items-start justify-between">
+                    <p class="text-sm font-medium text-orange-600">
+                        WFH / WFC
+                    </p>
+                    <div class="text-orange-500">
+                        <i class="fa-solid fa-house-laptop fa-lg"></i>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <h2 class="text-3xl sm:text-[36px] lg:text-[40px] leading-none font-bold text-orange-600">
+                        {{ $wfhWfcCount }}
+                    </h2>
+                    <p class="mt-2 text-xs font-medium text-orange-400">
+                        Remote Working
+                    </p>
+                </div>
+
+            </div>
+        @endif
 
     </section>
         {{-- ===================================================== --}}
@@ -288,13 +292,22 @@
 
             {{-- Legend --}}
             <div class="mt-4 flex flex-wrap items-center gap-x-4 sm:gap-x-5 gap-y-2 justify-center">
-                @foreach([
-                    ['WFO',      '#FB923C'],
-                    ['WFH/WFC',  '#A78BFA'],
-                    ['Izin',     '#34D399'],
-                    ['Alfa',     '#F87171'],
-                    ['Dinas',    '#60A5FA'],
-                ] as [$label, $color])
+                @php
+                    $legendItems = $hasWfoWfh
+                        ? [
+                            ['WFO',      '#FB923C'],
+                            ['WFH/WFC',  '#A78BFA'],
+                            ['Izin',     '#34D399'],
+                            ['Alfa',     '#F87171'],
+                            ['Dinas',    '#60A5FA'],
+                        ]
+                        : [
+                            ['Hadir',    '#34D399'],
+                            ['Izin',     '#60A5FA'],
+                            ['Alfa',     '#F87171'],
+                        ];
+                @endphp
+                @foreach($legendItems as [$label, $color])
                     <span class="flex items-center gap-1.5 text-xs text-slate-600">
                         <span class="inline-block h-3 w-3 rounded-sm" style="background:{{ $color }}"></span>
                         {{ $label }}
@@ -379,6 +392,7 @@
         {{-- ===================================================== --}}
     {{-- APPROVAL --}}
     {{-- ===================================================== --}}
+    @hasfeature('approval')
     <section class="grid gap-6">
 
         {{-- ======================================== --}}
@@ -394,7 +408,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    12 Menunggu
+                    {{ $pendingApprovalsCount }} Menunggu
                 </div>
             </div>
 
@@ -406,7 +420,7 @@
                         </svg>
                         Cuti
                     </div>
-                    <span class="text-sm font-bold text-slate-900">0</span>
+                    <span class="text-sm font-bold text-slate-900">{{ $approvalBreakdown['Cuti'] ?? 0 }}</span>
                 </div>
 
                 <div class="flex items-center justify-between border-b border-slate-100 py-3">
@@ -416,7 +430,7 @@
                         </svg>
                         Izin
                     </div>
-                    <span class="text-sm font-bold text-slate-900">2</span>
+                    <span class="text-sm font-bold text-slate-900">{{ $approvalBreakdown['Izin'] ?? 0 }}</span>
                 </div>
 
                 <div class="flex items-center justify-between border-b border-slate-100 py-3">
@@ -426,9 +440,10 @@
                         </svg>
                         Sakit
                     </div>
-                    <span class="text-sm font-bold text-slate-900">3</span>
+                    <span class="text-sm font-bold text-slate-900">{{ $approvalBreakdown['Sakit'] ?? 0 }}</span>
                 </div>
 
+                @if($hasWfoWfh)
                 <div class="flex items-center justify-between border-b border-slate-100 py-3">
                     <div class="flex items-center gap-3 text-sm font-medium text-slate-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -436,8 +451,9 @@
                         </svg>
                         WFH
                     </div>
-                    <span class="text-sm font-bold text-slate-900">7</span>
+                    <span class="text-sm font-bold text-slate-900">{{ $approvalBreakdown['WFH'] ?? 0 }}</span>
                 </div>
+                @endif
             </div>
 
             <div class="mt-6 flex justify-end">
@@ -451,11 +467,13 @@
 
         </div>
     </section>
+    @endhasfeature
 
 
     {{-- ===================================================== --}}
     {{-- MODAL: EDIT JAM MASUK --}}
     {{-- ===================================================== --}}
+    @hasfeature('schedule')
     <div
         x-show="editJamOpen"
         x-cloak
@@ -562,6 +580,7 @@
         </div>
 
     </div>
+    @endhasfeature
 
 </div>
 

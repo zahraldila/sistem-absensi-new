@@ -69,18 +69,74 @@
         </div>
     </div>
 
-    {{-- 3. Content Area: Log List & Side Widget --}}
+    {{-- 3. Filter Section --}}
+    <div class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm mb-5 sm:mb-6">
+        <form method="GET" action="{{ route('admin.log-aktivitas') }}" class="grid grid-cols-1 sm:grid-cols-2 {{ !empty($isSuperAdmin) ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-3 sm:gap-4">
+            {{-- Filter Organisasi (Khusus Super Admin) --}}
+            @if(!empty($isSuperAdmin))
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Organisasi</label>
+                <select name="organization_id" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                    <option value="all">Semua Organisasi</option>
+                    @foreach($allOrganizations as $org)
+                        <option value="{{ $org->organization_id }}" {{ request('organization_id') == $org->organization_id ? 'selected' : '' }}>
+                            {{ $org->nama_organisasi }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+
+            {{-- Filter Tanggal --}}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+                <input type="date" name="tanggal" value="{{ request('tanggal') }}"
+                       class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+            </div>
+
+            {{-- Filter User --}}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Pengguna</label>
+                <input type="text" name="user" value="{{ request('user') }}" placeholder="Cari nama atau username..."
+                       class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+            </div>
+
+            {{-- Filter Aktivitas & Action --}}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Aktivitas</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" name="aktivitas" value="{{ request('aktivitas') }}" placeholder="Cari aktivitas..."
+                           class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                    <button type="submit" class="px-3.5 py-2 rounded-xl bg-primary text-xs font-semibold text-white hover:bg-primary-hover shadow-sm transition">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                    @if(request()->hasAny(['organization_id', 'tanggal', 'user', 'aktivitas']))
+                    <a href="{{ route('admin.log-aktivitas') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition" title="Reset Filter">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                    @endif
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {{-- 4. Content Area: Log List & Table --}}
     <div class="flex flex-col gap-5 sm:gap-6">
         {{-- Kolom Kiri: Log Aktivitas --}}
         <div class="w-full">
 
-            {{-- 3a. Mobile Card View (Tampil di Layar HP < 640px) --}}
+            {{-- 4a. Mobile Card View (Tampil di Layar HP < 640px) --}}
             <div class="block sm:hidden space-y-3 mb-6">
                 @forelse ($logs as $log)
                     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2.5">
                         <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
                             <div class="min-w-0">
                                 <h3 class="truncate text-sm font-bold text-slate-900">{{ $log->nama_pegawai ?? $log->username }}</h3>
+                                @if(!empty($isSuperAdmin))
+                                <span class="inline-block mt-1 text-[11px] font-semibold text-primary bg-blue-50 px-2 py-0.5 rounded">
+                                    <i class="fa-solid fa-building text-[10px] mr-1"></i>{{ $log->organization_name_display }}
+                                </span>
+                                @endif
                             </div>
                             <div class="flex-shrink-0">
                                 <span class="rounded-full {{ strtolower($log->access_role_display) === 'admin' ? 'bg-blue-50 text-primary' : 'bg-slate-100 text-slate-600' }} px-2.5 py-0.5 text-xs font-semibold">{{ $log->access_role_display }}</span>
@@ -109,6 +165,9 @@
                         <thead class="bg-gray-50/80">
                             <tr>
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">Waktu</th>
+                                @if(!empty($isSuperAdmin))
+                                <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">Organisasi</th>
+                                @endif
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">Pengguna</th>
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">Role</th>
                                 <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Aktivitas</th>
@@ -125,6 +184,14 @@
                                             {{ \Carbon\Carbon::parse($log->waktu_log)->translatedFormat('d M Y') }}
                                         </div>
                                     </td>
+                                    @if(!empty($isSuperAdmin))
+                                    <td class="whitespace-nowrap px-5 py-3.5 text-sm font-semibold text-slate-800">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-primary border border-blue-100">
+                                            <i class="fa-solid fa-building text-[10px]"></i>
+                                            {{ $log->organization_name_display }}
+                                        </span>
+                                    </td>
+                                    @endif
                                     <td class="whitespace-nowrap px-5 py-3.5 text-sm font-semibold text-gray-900">
                                         {{ $log->nama_pegawai ?? $log->username }}
                                     </td>
@@ -137,7 +204,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-5 py-12 text-center text-sm text-gray-500">
+                                    <td colspan="{{ !empty($isSuperAdmin) ? 5 : 4 }}" class="px-5 py-12 text-center text-sm text-gray-500">
                                         Belum ada aktivitas yang tercatat.
                                     </td>
                                 </tr>

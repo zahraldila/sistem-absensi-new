@@ -1,5 +1,5 @@
 @php
-    $pageTitle = 'Live TV Dashboard - PT Selada Indonesia Produktif';
+    $pageTitle = 'Live TV Dashboard - ' . ($organizationName ?? 'Organisasi');
 @endphp
 <!DOCTYPE html>
 <html lang="id" class="h-full bg-slate-50">
@@ -95,6 +95,17 @@
     <!-- Main Content Area: Dynamic Multi-Branch Responsive Grid with Avatar Card Grid -->
     <main class="relative z-10 flex-1 max-w-[1920px] w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-between">
         
+        @if(empty($hasAttendance))
+        <div class="flex-1 flex items-center justify-center my-auto">
+            <div class="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 text-center max-w-lg shadow-sm">
+                <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400 text-2xl">
+                    <i class="fa-solid fa-calendar-xmark"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">Presensi Kehadiran Nonaktif</h2>
+                <p class="text-sm text-slate-500 mt-2">Fitur presensi kehadiran tidak aktif pada organisasi ini.</p>
+            </div>
+        </div>
+        @else
         <div 
             :class="gridColsClass"
             class="grid gap-5 lg:gap-8 items-stretch h-[calc(100vh-8.5rem)] transition-all duration-300"
@@ -126,12 +137,12 @@
                         <!-- Badge Total Hadir Cabang -->
                         <div class="text-right flex-shrink-0 pl-2">
                             <div class="text-2xl sm:text-3xl font-black text-[#12B76A] leading-none" x-text="branch.total_hadir"></div>
-                            <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Pegawai Hadir</div>
+                            <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{{ $memberTerm ?? 'Anggota' }} Hadir</div>
                         </div>
                     </div>
 
                     <!-- Mini Stats Bar Cabang -->
-                    <div class="grid grid-cols-3 gap-2 my-3 flex-shrink-0">
+                    <div class="grid {{ !empty($hasWfoWfh) ? 'grid-cols-3' : 'grid-cols-2' }} gap-2 my-3 flex-shrink-0">
                         <div class="bg-emerald-50/70 p-2 sm:p-2.5 rounded-2xl border border-emerald-100 flex items-center justify-between">
                             <div class="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-emerald-800">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -148,6 +159,7 @@
                             <span class="text-sm sm:text-base font-black text-slate-700" x-text="branch.checkout_count"></span>
                         </div>
 
+                        @if(!empty($hasWfoWfh))
                         <div class="bg-blue-50/70 p-2 sm:p-2.5 rounded-2xl border border-blue-100 flex items-center justify-between">
                             <div class="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-blue-800">
                                 <i class="fa-solid fa-laptop-house text-xs text-blue-600"></i>
@@ -155,6 +167,7 @@
                             </div>
                             <span class="text-sm sm:text-base font-black text-blue-700" x-text="branch.total_hadir"></span>
                         </div>
+                        @endif
                     </div>
 
                     <!-- List Pegawai Hadir di Cabang (Avatar Card Grid Layout) -->
@@ -230,7 +243,7 @@
                             <div class="w-11 h-11 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mb-2.5 text-slate-300">
                                 <i class="fa-regular fa-building text-lg"></i>
                             </div>
-                            <h5 class="text-xs sm:text-sm font-bold text-slate-600">Belum ada pegawai hadir</h5>
+                            <h5 class="text-xs sm:text-sm font-bold text-slate-600">Belum ada {{ strtolower($memberTerm ?? 'anggota') }} hadir</h5>
                             <p class="text-[11px] text-slate-400 mt-0.5" x-text="'Belum ada aktivitas presensi di ' + branch.nama_kantor + ' hari ini.'"></p>
                         </div>
 
@@ -240,6 +253,7 @@
             </template>
 
         </div>
+        @endif
 
     </main>
 
@@ -338,7 +352,9 @@
                             <span :class="modalData.tipe === 'checkout' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-[#ECFDF3] text-[#027A48] border-[#A6F4C5]'"
                                 class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider" x-text="modalData.tipe === 'checkout' ? 'Check Out' : 'Check In'">
                             </span>
+                            @if(!empty($hasWfoWfh))
                             <span class="text-xs font-medium text-slate-400 truncate" x-text="modalData.skema_label"></span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -372,22 +388,27 @@
                         <div class="text-slate-900 font-bold" x-text="modalData.lokasi || '-'"></div>
                     </div>
 
+                    @if(!empty($hasDivision))
                     <div class="flex items-center justify-between p-3 sm:p-3.5">
                         <div class="text-slate-500 font-medium flex items-center gap-2">
                             <i class="fa-solid fa-building-user text-slate-400"></i>
-                            Divisi
+                            {{ $divisionTerm ?? 'Divisi' }}
                         </div>
                         <div class="text-slate-900 font-bold" x-text="modalData.divisi || '-'"></div>
                     </div>
+                    @endif
 
+                    @if(!empty($hasPosition))
                     <div class="flex items-center justify-between p-3 sm:p-3.5">
                         <div class="text-slate-500 font-medium flex items-center gap-2">
                             <i class="fa-solid fa-user-tag text-slate-400"></i>
-                            Jabatan
+                            {{ $positionTerm ?? 'Jabatan' }}
                         </div>
                         <div class="text-slate-900 font-bold" x-text="modalData.jabatan || '-'"></div>
                     </div>
+                    @endif
 
+                    @if(!empty($hasSchedule))
                     <div class="flex items-center justify-between p-3 sm:p-3.5">
                         <div class="text-slate-500 font-medium flex items-center gap-2">
                             <i class="fa-regular fa-calendar-check text-slate-400"></i>
@@ -395,6 +416,7 @@
                         </div>
                         <div class="text-slate-900 font-bold" x-text="modalData.jam_kerja || '-'"></div>
                     </div>
+                    @endif
 
                 </div>
             </div>

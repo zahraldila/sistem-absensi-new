@@ -15,7 +15,7 @@ class TvDashboardController extends Controller
         $org = Organization::where('display_token', $displayToken)->where('status', 'active')->firstOrFail();
         
         $date = $request->query('date', now()->toDateString());
-        $data = $this->fetchStats($date, $org->organization_id);
+        $data = $this->fetchStats($date, $org);
         
         // Resolve branding without session
         $logo = DB::table('settings')->where('organization_id', $org->organization_id)->where('key', 'company_logo')->value('value');
@@ -27,7 +27,17 @@ class TvDashboardController extends Controller
             'organizationName' => $org->nama_organisasi,
             'logoUrl' => $logoUrl,
             'organizationInitials' => getInitials($org->nama_organisasi),
-            'displayToken' => $displayToken
+            'displayToken' => $displayToken,
+            'hasAttendance' => $org->hasFeature('attendance'),
+            'hasEmployee' => $org->hasFeature('employee'),
+            'hasDivision' => $org->hasFeature('division'),
+            'hasPosition' => $org->hasFeature('position'),
+            'hasWfoWfh' => $org->hasFeature('wfo_wfh'),
+            'hasSchedule' => $org->hasFeature('schedule'),
+            'hasLocation' => $org->hasFeature('location') || $org->hasFeature('gps'),
+            'memberTerm' => $org->getTerminology('member', 'Anggota'),
+            'divisionTerm' => $org->getTerminology('division', 'Divisi'),
+            'positionTerm' => $org->getTerminology('position', 'Jabatan'),
         ]));
     }
 
@@ -35,62 +45,113 @@ class TvDashboardController extends Controller
     {
         $org = Organization::where('display_token', $displayToken)->where('status', 'active')->firstOrFail();
         $date = $request->query('date', now()->toDateString());
-        $data = $this->fetchStats($date, $org->organization_id);
+        $data = $this->fetchStats($date, $org);
         
         return response()->json($data);
     }
 
-    private function fetchStats($date, $organizationId)
+    private function fetchStats($date, Organization $org)
     {
+        $organizationId = $org->organization_id;
+        $hasAttendance = $org->hasFeature('attendance');
+        $hasEmployee = $org->hasFeature('employee');
+        $hasDivision = $org->hasFeature('division');
+        $hasPosition = $org->hasFeature('position');
+        $hasWfoWfh = $org->hasFeature('wfo_wfh');
+        $hasSchedule = $org->hasFeature('schedule');
+
         // 1. Fetch dynamic list of branches from database ordered by ID
         $branches = DB::table('lokasi_kantor')
             ->where('organization_id', $organizationId)
             ->orderBy('lokasi_id', 'asc')
             ->get(['lokasi_id', 'nama_kantor', 'latitude', 'longitude', 'radius_meter']);
 
+        // 2. Total Pegawai (Aktif) - only query if employee capability is enabled
+        $totalPegawai = 0;
+        if ($hasEmployee) {
+            $totalPegawai = DB::table('pegawai')
+                ->where('organization_id', $organizationId)
+                ->where(function ($query) {
+                    $query->where('status', 'Aktif')
+                          ->orWhereNull('status')
+                          ->orWhere('status', '');
+                })
+                ->count();
+        }
 
-        // 2. Total Pegawai (Aktif)
-        $totalPegawai = DB::table('pegawai')
-            ->where('organization_id', $organizationId)
-            ->where(function ($query) {
-                $query->where('status', 'Aktif')
-                      ->orWhereNull('status')
-                      ->orWhere('status', '');
-            })
-            ->count();
+        // 3. If attendance feature is disabled, return early without querying attendance
+        if (!$hasAttendance) {
+            return [
+                'branches' => $branches,
+                'branchCards' => [],
+                'totalPegawai' => $totalPegawai,
+                'totalHadir' => 0,
+                'sedangBekerja' => 0,
+                'sudahCheckOut' => 0,
+                'wfoCount' => 0,
+                'wfhCount' => 0,
+                'sakitCount' => 0,
+                'izinCount' => 0,
+                'belumHadir' => 0,
+                'liveCheckIns' => collect([]),
+                'hasAttendance' => false,
+                'hasEmployee' => $hasEmployee,
+                'hasDivision' => $hasDivision,
+                'hasPosition' => $hasPosition,
+                'hasWfoWfh' => $hasWfoWfh,
+                'hasSchedule' => $hasSchedule,
+            ];
+        }
 
-        // 3. Fetch all raw attendance records for the date
-        $allAttendances = DB::table('absensi')
-            ->join('pegawai', 'absensi.pegawai_id', '=', 'pegawai.pegawai_id')
-            ->leftJoin('master_divisi', 'pegawai.divisi_id', '=', 'master_divisi.divisi_id')
-            ->leftJoin('master_jabatan', 'pegawai.jabatan_id', '=', 'master_jabatan.jabatan_id')
-            ->leftJoin('jadwal_kerja', 'absensi.jadwal_id', '=', 'jadwal_kerja.jadwal_id')
+        // 4. Fetch all raw attendance records for the date
+        $query = DB::table('absensi')
+            ->join('pegawai', 'absensi.pegawai_id', '=', 'pegawai.pegawai_id');
+
+        if ($hasDivision) {
+            $query->leftJoin('master_divisi', 'pegawai.divisi_id', '=', 'master_divisi.divisi_id');
+        }
+        if ($hasPosition) {
+            $query->leftJoin('master_jabatan', 'pegawai.jabatan_id', '=', 'master_jabatan.jabatan_id');
+        }
+        if ($hasSchedule) {
+            $query->leftJoin('jadwal_kerja', 'absensi.jadwal_id', '=', 'jadwal_kerja.jadwal_id');
+        }
+
+        $select = [
+            'absensi.absensi_id',
+            'absensi.pegawai_id',
+            'absensi.jam_checkin',
+            'absensi.jam_checkout',
+            'absensi.skema_kerja',
+            'absensi.status_kehadiran',
+            'absensi.latitude',
+            'absensi.longitude',
+            'absensi.catatan',
+            'absensi.lokasi_id',
+            'pegawai.nama_pegawai',
+            'pegawai.foto_profile',
+        ];
+        if ($hasDivision) {
+            $select[] = 'master_divisi.nama_divisi';
+        }
+        if ($hasPosition) {
+            $select[] = 'master_jabatan.nama_jabatan';
+        }
+        if ($hasSchedule) {
+            $select[] = 'jadwal_kerja.jam_masuk';
+            $select[] = 'jadwal_kerja.jam_pulang';
+        }
+
+        $allAttendances = $query
             ->where('pegawai.organization_id', $organizationId)
             ->whereDate('absensi.tanggal_absensi', $date)
             ->whereNotNull('absensi.jam_checkin')
             ->whereIn(DB::raw('LOWER(TRIM(absensi.status_kehadiran))'), ['hadir', 'terlambat', 'tepat waktu'])
-            ->select(
-                'absensi.absensi_id',
-                'absensi.pegawai_id',
-                'absensi.jam_checkin',
-                'absensi.jam_checkout',
-                'absensi.skema_kerja',
-                'absensi.status_kehadiran',
-                'absensi.latitude',
-                'absensi.longitude',
-                'absensi.catatan',
-                'absensi.lokasi_id',
-                'pegawai.nama_pegawai',
-                'pegawai.foto_profile',
-                'master_divisi.nama_divisi',
-                'master_jabatan.nama_jabatan',
-                'jadwal_kerja.jam_masuk',
-                'jadwal_kerja.jam_pulang'
-            )
+            ->select($select)
             ->orderBy('absensi.absensi_id', 'desc')
             ->get();
 
-        // 4. Group by pegawai_id to handle Multi-Session Check-in/Check-out
+        // 5. Group by pegawai_id to handle Multi-Session Check-in/Check-out
         $groupedByPegawai = $allAttendances->groupBy('pegawai_id');
 
         $latestAttendances = $groupedByPegawai->map(function ($employeeAttendances) {
@@ -121,8 +182,8 @@ class TvDashboardController extends Controller
             return $primary;
         })->values();
 
-        // 5. Map records with branch determination
-        $mappedAttendances = $latestAttendances->map(function ($item) use ($branches) {
+        // 6. Map records with branch determination
+        $mappedAttendances = $latestAttendances->map(function ($item) use ($branches, $hasWfoWfh, $hasDivision, $hasPosition, $hasSchedule) {
             $catatan = strtolower($item->catatan ?? '');
             
             // Primary location from absensi
@@ -140,8 +201,7 @@ class TvDashboardController extends Controller
                     }
                 }
 
-
-                // C. Check Geo-Location
+                // B. Check Geo-Location
                 if (!$matchedLocationId && !empty($item->latitude) && !empty($item->longitude)) {
                     $lat = (float) $item->latitude;
                     $long = (float) $item->longitude;
@@ -167,19 +227,19 @@ class TvDashboardController extends Controller
                 }
             }
 
-            // D. Fallback for WFO / WFH
+            // Fallback for location
             if (!$matchedLocationId) {
-                if (in_array(strtoupper($item->skema_kerja ?? ''), ['WFH', 'WFC'])) {
+                if ($hasWfoWfh && in_array(strtoupper($item->skema_kerja ?? ''), ['WFH', 'WFC'])) {
                     $matchedLocationId = 'remote';
                     $matchedLocationName = 'Remote (WFH/WFC)';
                 } else {
                     $firstBranch = $branches->first();
-                    $matchedLocationId = $firstBranch?->lokasi_id;
+                    $matchedLocationId = $firstBranch?->lokasi_id ?? 'main';
                 }
             }
 
             // Resolve name
-            if ($matchedLocationId && $matchedLocationId !== 'remote') {
+            if ($matchedLocationId && $matchedLocationId !== 'remote' && $matchedLocationId !== 'main') {
                 $found = $branches->firstWhere('lokasi_id', (int)$matchedLocationId);
                 $matchedLocationName = $found ? $found->nama_kantor : 'Unresolved Location';
             }
@@ -202,32 +262,40 @@ class TvDashboardController extends Controller
                 $durasiKerja = "{$hours} Jam {$mins} Menit";
             }
 
-            $skema = strtoupper($item->skema_kerja ?? 'WFO');
-            if ($skema === 'WFO') {
-                $skemaLabel = 'Work From Office';
-                $lokasi = $matchedLocationName;
-            } elseif ($skema === 'WFH') {
-                $skemaLabel = 'Work From Home';
-                $lokasi = 'Rumah';
-            } elseif ($skema === 'WFC') {
-                $skemaLabel = 'Work From Cafe';
-                $lokasi = 'Cafe';
-            } else {
-                $skemaLabel = $item->skema_kerja ?? 'Remote';
-                $lokasi = 'Remote';
+            $skema = null;
+            $skemaLabel = null;
+            $lokasi = $matchedLocationName;
+            if ($hasWfoWfh) {
+                $skema = strtoupper($item->skema_kerja ?? 'WFO');
+                if ($skema === 'WFO') {
+                    $skemaLabel = 'Work From Office';
+                    $lokasi = $matchedLocationName;
+                } elseif ($skema === 'WFH') {
+                    $skemaLabel = 'Work From Home';
+                    $lokasi = 'Rumah';
+                } elseif ($skema === 'WFC') {
+                    $skemaLabel = 'Work From Cafe';
+                    $lokasi = 'Cafe';
+                } else {
+                    $skemaLabel = $item->skema_kerja ?? 'Remote';
+                    $lokasi = 'Remote';
+                }
             }
 
-            $jamKerja = '08:30 - 17:30';
-            if ($item->jam_masuk && $item->jam_pulang) {
-                $masuk = Carbon::parse($item->jam_masuk)->format('H:i');
-                $pulang = Carbon::parse($item->jam_pulang)->format('H:i');
-                $jamKerja = "{$masuk} - {$pulang}";
+            $jamKerja = null;
+            if ($hasSchedule) {
+                $jamKerja = '08:30 - 17:30';
+                if (!empty($item->jam_masuk) && !empty($item->jam_pulang)) {
+                    $masuk = Carbon::parse($item->jam_masuk)->format('H:i');
+                    $pulang = Carbon::parse($item->jam_pulang)->format('H:i');
+                    $jamKerja = "{$masuk} - {$pulang}";
+                }
             }
 
             $statusKehadiran = 'Tepat Waktu';
             if (strtolower(trim($item->status_kehadiran ?? '')) === 'terlambat') {
                 $statusKehadiran = 'Terlambat';
-            } elseif ($item->jam_checkin && $item->jam_masuk) {
+            } elseif ($hasSchedule && $item->jam_checkin && !empty($item->jam_masuk)) {
                 $checkInTimeParsed = Carbon::parse($item->jam_checkin)->format('H:i:s');
                 $jamMasukTimeParsed = Carbon::parse($item->jam_masuk)->format('H:i:s');
                 if ($checkInTimeParsed > $jamMasukTimeParsed) {
@@ -252,19 +320,19 @@ class TvDashboardController extends Controller
                 'lokasi' => $lokasi,
                 'status_kehadiran' => $statusKehadiran,
                 'status_kerja' => $hasCheckOut ? 'Sudah Pulang' : 'Sedang Bekerja',
-                'divisi' => $item->nama_divisi ?? 'IT',
-                'jabatan' => $item->nama_jabatan ?? 'Staff',
+                'divisi' => $hasDivision ? ($item->nama_divisi ?? null) : null,
+                'jabatan' => $hasPosition ? ($item->nama_jabatan ?? null) : null,
                 'jam_kerja' => $jamKerja,
                 'foto_profile' => supabase_public_url($item->foto_profile),
             ];
         });
 
-        // 6. Global Summary counts
+        // 7. Global Summary counts
         $totalHadir = $mappedAttendances->count();
         $sedangBekerja = $mappedAttendances->where('has_checkout', false)->count();
         $sudahCheckOut = $mappedAttendances->where('has_checkout', true)->count();
-        $wfoCount = $mappedAttendances->where('skema', 'WFO')->count();
-        $wfhCount = $mappedAttendances->whereIn('skema', ['WFH', 'WFC'])->count();
+        $wfoCount = $hasWfoWfh ? $mappedAttendances->where('skema', 'WFO')->count() : 0;
+        $wfhCount = $hasWfoWfh ? $mappedAttendances->whereIn('skema', ['WFH', 'WFC'])->count() : 0;
 
         // Sakit & Izin scoped by organization
         $sakitCount = DB::table('pengajuan')
@@ -287,29 +355,46 @@ class TvDashboardController extends Controller
 
         $belumHadir = max(0, $totalPegawai - $totalHadir - $sakitCount - $izinCount);
 
-        // 7. Group attendances for EVERY branch
+        // 8. Group attendances for EVERY branch
         $branchCards = [];
         $firstBranch = $branches->first();
-        foreach ($branches as $branch) {
-            $branchId = (string)$branch->lokasi_id;
-            $branchName = $branch->nama_kantor;
-            $isHq = $firstBranch && $branch->lokasi_id === $firstBranch->lokasi_id; // Set first branch as HQ
 
-            $list = $mappedAttendances->filter(function ($i) use ($branchId, $branchName) {
-                return (string)$i['cabang_id'] === $branchId;
-            })->values();
+        if ($branches->isNotEmpty()) {
+            foreach ($branches as $branch) {
+                $branchId = (string)$branch->lokasi_id;
+                $branchName = $branch->nama_kantor;
+                $isHq = $firstBranch && $branch->lokasi_id === $firstBranch->lokasi_id;
 
-            $working = $list->where('has_checkout', false)->count();
-            $checkout = $list->where('has_checkout', true)->count();
+                $list = $mappedAttendances->filter(function ($i) use ($branchId) {
+                    return (string)$i['cabang_id'] === $branchId;
+                })->values();
+
+                $working = $list->where('has_checkout', false)->count();
+                $checkout = $list->where('has_checkout', true)->count();
+
+                $branchCards[] = [
+                    'lokasi_id' => $branch->lokasi_id,
+                    'nama_kantor' => $branchName,
+                    'is_hq' => $isHq,
+                    'total_hadir' => $list->count(),
+                    'working_count' => $working,
+                    'checkout_count' => $checkout,
+                    'attendances' => $list,
+                ];
+            }
+        } else {
+            // Default virtual branch card when no specific locations are configured
+            $working = $mappedAttendances->where('has_checkout', false)->count();
+            $checkout = $mappedAttendances->where('has_checkout', true)->count();
 
             $branchCards[] = [
-                'lokasi_id' => $branch->lokasi_id,
-                'nama_kantor' => $branchName,
-                'is_hq' => $isHq,
-                'total_hadir' => $list->count(),
+                'lokasi_id' => 0,
+                'nama_kantor' => $org->nama_organisasi,
+                'is_hq' => true,
+                'total_hadir' => $mappedAttendances->count(),
                 'working_count' => $working,
                 'checkout_count' => $checkout,
-                'attendances' => $list,
+                'attendances' => $mappedAttendances,
             ];
         }
 
@@ -326,6 +411,12 @@ class TvDashboardController extends Controller
             'izinCount' => $izinCount,
             'belumHadir' => $belumHadir,
             'liveCheckIns' => $mappedAttendances,
+            'hasAttendance' => true,
+            'hasEmployee' => $hasEmployee,
+            'hasDivision' => $hasDivision,
+            'hasPosition' => $hasPosition,
+            'hasWfoWfh' => $hasWfoWfh,
+            'hasSchedule' => $hasSchedule,
         ];
     }
 }

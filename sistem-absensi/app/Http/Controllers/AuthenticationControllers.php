@@ -125,6 +125,10 @@ class AuthenticationControllers extends Controller
             logHelpers::record($akun->akun_id, "{$actorName} berhasil login ke dalam sistem");
             // ---------------------------------------------------------
 
+            if ($akun->isSuperAdmin()) {
+                session()->forget('active_organization_id');
+            }
+
             return redirect()->intended(route('admin.dashboard'));
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Login failed due to server/connection error: ' . $e->getMessage());

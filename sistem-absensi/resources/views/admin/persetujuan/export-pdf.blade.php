@@ -42,7 +42,7 @@
                 <td>: {{ $filters['tanggal_akhir'] }}</td>
             </tr>
             <tr>
-                <td><strong>Anggota</strong></td>
+                <td><strong>{{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}</strong></td>
                 <td colspan="3">: {{ $filters['pegawai'] }}</td>
             </tr>
         </tbody>
@@ -52,8 +52,10 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                <th style="width: 20%;">Nama Anggota</th>
-                <th style="width: 15%;">Divisi</th>
+                <th style="width: 20%;">Nama {{ \App\Helpers\OrganizationHelper::term('member', 'Anggota') }}</th>
+                @if(!empty($hasDivision))
+                <th style="width: 15%;">{{ \App\Helpers\OrganizationHelper::term('division', 'Divisi') }}</th>
+                @endif
                 <th style="width: 14%;">Jenis Pengajuan</th>
                 <th style="width: 15%;">Tanggal Pengajuan</th>
                 <th style="width: 12%;">Status</th>
@@ -74,7 +76,9 @@
             <tr>
                 <td>{{ $row['no'] }}</td>
                 <td>{{ $row['nama'] }}</td>
+                @if(!empty($hasDivision))
                 <td>{{ $row['divisi'] }}</td>
+                @endif
                 <td>{{ $row['jenis_pengajuan'] }}</td>
                 <td>{{ $row['tanggal_pengajuan'] }}</td>
                 <td><span class="badge {{ $badgeClass }}">{{ $row['status'] }}</span></td>

@@ -39,6 +39,11 @@ class AdminPlaceholderController extends Controller
         return view('admin.placeholder', ['title' => 'Log Aktivitas']);
     }
 
+    public function lokasiKantor()
+    {
+        return redirect()->route('admin.tampilan-branding', ['tab' => 'lokasi']);
+    }
+
     public function tampilanBranding(Request $request)
     {
         try {
@@ -74,6 +79,14 @@ class AdminPlaceholderController extends Controller
                 }
                 // Tidak ada tab Settings yang bisa diakses sama sekali
                 abort(403, 'Anda tidak memiliki akses ke halaman Settings ini.');
+            }
+
+            // ── Feature capability guard for location ───────────────────────
+            $org = OrganizationHelper::getActiveOrganization();
+            $hasLocation = $org?->hasFeature('location') || $org?->hasFeature('gps');
+            if ($activeTab === 'lokasi' && !$hasLocation) {
+                return redirect()->route('admin.tampilan-branding', ['tab' => 'branding'])
+                    ->with('error', 'Fitur lokasi dan geofence tidak aktif untuk organisasi ini.');
             }
             // ── /Tahap 4B ─────────────────────────────────────────────────────
 
@@ -316,6 +329,8 @@ class AdminPlaceholderController extends Controller
 
     public function simpanBranding(Request $request)
     {
+        $orgId = OrganizationHelper::requireActiveOrganization();
+
         $request->validate([
             'primary_color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'logo'          => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
@@ -379,6 +394,8 @@ class AdminPlaceholderController extends Controller
 
     public function simpanLogo(Request $request)
     {
+        $orgId = OrganizationHelper::requireActiveOrganization();
+
         $request->validate([
             'logo' => 'required|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
         ]);

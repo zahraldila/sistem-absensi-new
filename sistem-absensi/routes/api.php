@@ -9,11 +9,14 @@ Route::prefix('api')->middleware(['api'])->group(function () {
     Route::post('logout', [App\Http\Controllers\AuthenticationControllers::class, 'logout'])->middleware('auth:sanctum');
 
     // Attendance
-    Route::post('attendance/checkin', [App\Http\Controllers\AttendanceControllers::class, 'checkIn'])->middleware('auth:sanctum');
-    Route::post('attendance/checkout', [App\Http\Controllers\AttendanceControllers::class, 'checkOut'])->middleware('auth:sanctum');
+    Route::post('attendance/checkin', [App\Http\Controllers\AttendanceControllers::class, 'checkIn'])
+        ->middleware(['auth:sanctum', 'feature:attendance']);
+    Route::post('attendance/checkout', [App\Http\Controllers\AttendanceControllers::class, 'checkOut'])
+        ->middleware(['auth:sanctum', 'feature:attendance']);
 
     // Submissions
-    Route::apiResource('submissions', App\Http\Controllers\SubmissionControllers::class)->middleware('auth:sanctum');
+    Route::apiResource('submissions', App\Http\Controllers\SubmissionControllers::class)
+        ->middleware(['auth:sanctum', 'feature:approval']);
 
     // Dashboard
     Route::get('dashboard/admin', [App\Http\Controllers\DashboardControllers::class, 'admin'])

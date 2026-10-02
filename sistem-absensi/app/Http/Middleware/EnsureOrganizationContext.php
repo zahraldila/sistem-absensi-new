@@ -30,12 +30,11 @@ class EnsureOrganizationContext
         // If no organization ID is found
         if (!$orgId) {
             if ($user->isSuperAdmin()) {
-                // If they are on the selection page routes, let them pass
+                // If they are on the selection or system management routes, let them pass
                 if (
-                    $request->routeIs('admin.organization.select') || 
-                    $request->routeIs('admin.organization.store') ||
-                    $request->routeIs('admin.organization.create') ||
-                    $request->routeIs('admin.organization.storeNew')
+                    $request->routeIs('admin.organization.*') || 
+                    $request->routeIs('admin.system.*') ||
+                    $request->routeIs('admin.log-aktivitas*')
                 ) {
                     return $next($request);
                 }

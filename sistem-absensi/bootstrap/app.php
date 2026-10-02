@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'privilege' => \App\Http\Middleware\PrivilegeMiddleware::class,
             'superadmin.org' => \App\Http\Middleware\CheckSuperAdminOrganization::class,
             'org.context' => \App\Http\Middleware\EnsureOrganizationContext::class,
+            'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
         ]);
 
         $middleware->web(append: [
